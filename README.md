@@ -3,7 +3,7 @@
 
 The programming language that uses common sense to prevent you from typing more than you need, simple yet powerful.
 
-Check how to contribute and check changelog [here](Development.md)
+Check how to contribute and check change log [here](Development.md)
 
 ### Examples
 Hello world sample
