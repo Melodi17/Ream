@@ -8,6 +8,13 @@ namespace ream
 {
     public static class Extensions
     {
+        /// <summary>
+        /// Splits an IEnumerable
+        /// </summary>
+        /// <typeparam name="T">The type of collection</typeparam>
+        /// <param name="source">The source collection</param>
+        /// <param name="separator">The function that controls separation of <paramref name="source"/> when returns true</param>
+        /// <returns>A IEnumerable of IEnumerables from <paramref name="source"/></returns>
         public static IEnumerable<IEnumerable<T>> Split<T>(this IEnumerable<T> source, Func<T, bool> separator)
         {
             List<List<T>> dest = new();
@@ -31,13 +38,24 @@ namespace ream
 
             return dest;
         }
-        public static int ToInt(this long l)
+        /// <summary>
+        /// Safely convert long to int and prevents overflow
+        /// </summary>
+        /// <param name="source">The long to convert</param>
+        /// <returns>A safely converted interger</returns>
+        public static int ToInt(this long source) 
         {
-            return (int)(l % int.MaxValue);
+            return (int)(source % int.MaxValue);
         }
+        /// <summary>
+        /// Repeats a string x amount of times
+        /// </summary>
+        /// <param name="source">The source string</param>
+        /// <param name="multiplier">The amount of times to repeat <paramref name="source"/></param>
+        /// <returns><paramref name="source"/> repeated <paramref name="multiplier"/> amount of times</returns>
         public static string Multiply(this string source, int multiplier)
         {
-            StringBuilder sb = new StringBuilder(multiplier * source.Length);
+            StringBuilder sb = new(multiplier * source.Length);
             for (long i = 0; i < multiplier; i++)
             {
                 sb.Append(source);
@@ -55,7 +73,7 @@ namespace ream
 
             return obj1Serialized == obj2Serialized;
         }
-    }
+    } // Unused (is too slow)
     public class Reader<T>
     {
         private readonly T[] OriginalValues;

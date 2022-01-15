@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace ream
 {
@@ -25,6 +26,24 @@ namespace ream
         {
             MainNode = mainNode;
             GlobalScope = new();
+            GlobalScope.Set("Main.Write", Token.ManualCreate(new ExternalFunction("Write", objs =>
+            {
+                Console.WriteLine(string.Join(' ', objs.Select(x => x.Value.ToString())));
+                return Token.Null;
+            }), TokenType.Function));
+            GlobalScope.Set("Main.Sleep", Token.ManualCreate(new ExternalFunction("Sleep", objs =>
+            {
+                if (objs.Length == 0)
+                    Error("FormatInvalid", "Structure requires 1 parameter");
+
+                Token token = objs.First();
+
+                if (token.Type != TokenType.Interger)
+                    Error("TokenValueInvalid", "Specified token was not type 'interger'");
+
+                Thread.Sleep(1000 * ((long)token.Value).ToInt());
+                return Token.Null;
+            }), TokenType.Function));
         }
         public void Interpret()
         {
@@ -70,6 +89,10 @@ namespace ream
             if (format.IsSimilar("V") && ReservedKeywords.Any(fValue.Equals))
             {
                 tokenReader.Read(); // Remove first item
+                if (fValue.Equals("null"))
+                {
+                    return Token.ManualCreate(null, TokenType.Null);
+                }
                 if (fValue.Equals("global") && format.IsSimilar("VV+ "))
                 {
                     Token leftToken = tokenReader.Read();
@@ -184,12 +207,6 @@ namespace ream
                     }
                     else
                         Error("TokenTypeInvalid", "Specified token was not a supported type");
-
-                    //Dive(node, scope)
-                    //Token[] collToken = tokenReader.Rest();
-                    //
-
-                    //Token iterator = Evaluate(scope, collToken);
                 }
                 else if (fValue.Equals("function") && format.IsSimilar("VV"))
                 {
@@ -290,10 +307,24 @@ namespace ream
                 }
                 else if (format.IsSimilar(" + "))
                 {
-                    Token leftTokenUnEval = tokenReader.Read();
-                    Token leftToken = Evaluate(scope, new Token[] { leftTokenUnEval });
-                    Token operatorToken = tokenReader.Read();
+                    List<Token> leftTokens = new();
+                    Token operatorToken;
+                    while (true)
+                    {
+                        Token currentToken = tokenReader.Read();
+                        if (currentToken.Type == TokenType.Operator)
+                        {
+                            operatorToken = currentToken; break;
+                        }
+                        leftTokens.Add(currentToken);
+                    }
+                    Token leftToken = Evaluate(scope, leftTokens.ToArray());
                     Token rightToken = Evaluate(scope, tokenReader.Rest());
+
+                    Token leftTokenUnEval = leftTokens.First();
+                    //Token leftToken = Evaluate(scope, new Token[] { leftTokenUnEval });
+                    //Token operatorToken = tokenReader.Read();
+                    //Token rightToken = Evaluate(scope, tokenReader.Rest());
 
                     string op = operatorToken.Value.ToString();
                     if (op.Equals("="))
@@ -313,9 +344,9 @@ namespace ream
                         return Token.ManualCreate(leftToken.Value.ToString() != rightToken.Value.ToString(), TokenType.Boolean);
                     }
                     //else if (op.Equals("==="))
-                    //    return Token.ManualCreate(ObjectComparerUtility.ObjectsAreEqual(leftToken.Value, rightToken.Value), TokenType.Boolean);
+                    //    return Token.ManualCreate(ObjectComparerUtility.ObjectsAreEqual(leftToken.Value, rightToken.Value), TokenType.Boolean); // Too slow
                     //else if (op.Equals("!="))
-                    //    return Token.ManualCreate(!ObjectComparerUtility.ObjectsAreEqual(leftToken.Value, rightToken.Value), TokenType.Boolean);
+                    //    return Token.ManualCreate(!ObjectComparerUtility.ObjectsAreEqual(leftToken.Value, rightToken.Value), TokenType.Boolean); // Too slow
 
                     else if (op.Equals("&"))
                     {
@@ -339,7 +370,7 @@ namespace ream
                         else if (leftToken.Type == rightToken.Type && leftToken.Type == TokenType.Interger)
                             return Token.ManualCreate((long)leftToken.Value + (long)rightToken.Value, TokenType.Interger);
                         else
-                            Error("InvalidOperator", $"Specified operator cannot be applied to type {leftToken.Type.ToString().ToLower()} and {leftToken.Type.ToString().ToLower()}");
+                            Error("InvalidOperator", $"Specified operator cannot be applied to type {leftToken.Type.ToString().ToLower()} and {rightToken.Type.ToString().ToLower()}");
                     }
                     else if (op.Equals("-"))
                     {
@@ -355,7 +386,7 @@ namespace ream
                         else if (leftToken.Type == rightToken.Type && leftToken.Type == TokenType.Interger)
                             return Token.ManualCreate((long)leftToken.Value * (long)rightToken.Value, TokenType.Interger);
                         else
-                            Error("InvalidOperator", $"Specified operator cannot be applied to type {leftToken.Type.ToString().ToLower()} and {leftToken.Type.ToString().ToLower()}");
+                            Error("InvalidOperator", $"Specified operator cannot be applied to type {leftToken.Type.ToString().ToLower()} and {rightToken.Type.ToString().ToLower()}");
                     }
                     else if (op.Equals("/"))
                     {

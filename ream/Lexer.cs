@@ -14,8 +14,10 @@ namespace ream
         public Lexer(string text)
         {
             Text = text
-                .Replace("\r", "") /* Fix line endings */;
+                // Fix line endings
+                .Replace("\r", "");
 
+            // Remove comments
             Text = Regex.Replace(Text, @"(\/\/.*)|(\/\*(?:.|\n)*?\*\/)", "");
         }
         public Token[] Lex()
