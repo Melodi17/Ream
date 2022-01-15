@@ -58,12 +58,100 @@ namespace Ream.Interpreter
         {
             Dive(MainNode, GlobalScope);
         }
+
+        public static TokenType[] SupportedIndexers =
+        {
+            TokenType.String,
+            TokenType.Sequence
+        };
+        public Token[] GetIterator(Token token)
+        {
+            if (token.Type == TokenType.Sequence)
+            {
+                return ((Sequence)token.Value).Value;
+            }
+            else if (token.Type == TokenType.String)
+            {
+                return token.Value.ToString()
+                    .ToCharArray()
+                    .Select(x => Token.ManualCreate(x.ToString(), TokenType.String))
+                    .ToArray();
+            }
+            else if (token.Type == TokenType.Interger)
+            {
+                return Enumerable.Range(0, ((long)token.Value).ToInt())
+                    .Select(x => Token.ManualCreate((long)x, TokenType.Interger))
+                    .ToArray();
+            }
+            else if (token.Type == TokenType.Boolean)
+            {
+                return (bool)token.Value ? new Token[] { Token.ManualCreate(true, TokenType.Boolean) } : Array.Empty<Token>();
+            }
+            else
+                return Array.Empty<Token>();
+        }
+
+        public Token[] SequenceEvaluate(Scope scope, Token[] tokens)
+        {
+            List<Token> ret = new();
+            int sequenceDepth = 0;
+            List<Token> currentSequence = new();
+            List<Token> currentTokens = new();
+            foreach (var item in tokens)
+            {
+                string value = item.Value.ToString();
+                if (item.Type == TokenType.Bracket && value == "[")
+                {
+                    sequenceDepth++;
+                    continue;
+                }
+                if (item.Type == TokenType.Bracket && value == "]")
+                {
+                    sequenceDepth--;
+
+                    if (sequenceDepth <= 0)
+                    {
+                        if (currentTokens.Count > 0)
+                        {
+                            currentSequence.Add(Evaluate(scope, currentTokens.ToArray()));
+                            currentTokens.Clear();
+                        }
+
+                        ret.Add(Token.ManualCreate(new Sequence(currentSequence.ToArray()), TokenType.Sequence));
+                    }
+
+                    continue;
+                }
+
+                if (sequenceDepth > 0)
+                {
+                    if (item.Type == TokenType.Operator && value == ",")
+                    {
+                        if (currentTokens.Count > 0)
+                        {
+                            currentSequence.Add(Evaluate(scope, currentTokens.ToArray()));
+                            currentTokens.Clear();
+                        }
+                    }
+                    else
+                    {
+                        currentTokens.Add(item);
+                    }
+                }
+                else
+                {
+                    ret.Add(item);
+                }
+            }
+
+            return ret.ToArray();
+        }
         public Token Dive(Node node, Scope scope, bool requireReturn = false)
         {
             Scope localScope = scope.CreateChild();
 
-            List<Token> tokens = new();
-            tokens.AddRange(node.ChildNodes.Where(x => x.HasToken).Select(x => x.Token));
+            Token[] tokens = node.ChildNodes.Where(x => x.HasToken).Select(x => x.Token).ToArray();
+            tokens = SequenceEvaluate(scope, tokens);
 
             List<Node> childNodes = new();
             foreach (Node item in node.ChildNodes)
@@ -72,6 +160,7 @@ namespace Ream.Interpreter
                     //Dive(item, localScope);
                     childNodes.Add(item);
             }
+
             Reader<Node> childNodeReader = new(childNodes.ToArray());
             List<List<Token>> lines = tokens.Split(x => x.Type == TokenType.Newline).Select(x => x.ToList()).Where(x => x.Count > 0).ToList();
             foreach (var item in lines)
@@ -91,7 +180,8 @@ namespace Ream.Interpreter
             string fValue = tokenReader.Peek().Value.ToString();
             if (format.IsSimilar("V") && ReservedKeywords.Any(fValue.Equals))
             {
-                tokenReader.Read(); // Remove first item
+                // Remove first item
+                tokenReader.Read();
                 if (fValue.Equals("null"))
                 {
                     return Token.ManualCreate(null, TokenType.Null);
@@ -194,22 +284,24 @@ namespace Ream.Interpreter
                     string set = setToken.Value.ToString();
                     Token iterateToken = Evaluate(scope, tokenReader.Rest());
 
-                    if (iterateToken.Type == TokenType.Interger)
+
+                    // Calculate iteration
+                    Token[] iterate = GetIterator(iterateToken);
+
+                    // Perform iteration
+                    foreach (var item in iterate)
                     {
-                        for (long i = 0; i < (long)iterateToken.Value; i++)
+                        if (useSet)
                         {
-                            if (useSet)
-                            {
-                                Scope localScope = scope.CreateChild();
-                                localScope.Set(set, Token.ManualCreate(i, TokenType.Interger));
-                                Dive(node, localScope);
-                            }
-                            else
-                                Dive(node, scope);
+                            Scope localScope = scope.CreateChild();
+                            localScope.Set(set, item);
+                            Dive(node, localScope);
+                        }
+                        else
+                        {
+                            Dive(node, scope);
                         }
                     }
-                    else
-                        Error("TokenTypeInvalid", "Specified token was not a supported type");
                 }
                 else if (fValue.Equals("function") && format.IsSimilar("VV"))
                 {
@@ -255,30 +347,36 @@ namespace Ream.Interpreter
 
                     if (openBracketToken.Type == closeBracketToken.Type && openBracketToken.Type == TokenType.Bracket)
                     {
-                        Token functionToken = scope.Get(nameToken.Value.ToString());
-                        if (functionToken.Type != TokenType.Function)
-                            Error("TokenTypeInvalid", "Specified token was not type 'function'");
+                        Token mainToken = scope.Get(nameToken.Value.ToString());
 
-                        IFunction function = (IFunction)functionToken.Value;
-                        Token response;
-
-                        if (parameterTokens.Length > 0)
+                        if (mainToken.Type == TokenType.Function)
                         {
-                            Token[] solvedParameters = parameterTokens
-                                .Split(x => x.Type == TokenType.Operator && x.Value.ToString() == ",")
-                                .Select(x => Evaluate(scope, x.ToArray()))
-                                .ToArray();
 
-                            response = function.Invoke(this, scope, solvedParameters);
+                            IFunction function = (IFunction)mainToken.Value;
+                            Token response;
+
+                            if (parameterTokens.Length > 0)
+                            {
+                                Token[] solvedParameters = parameterTokens
+                                    .Split(x => x.Type == TokenType.Operator && x.Value.ToString() == ",")
+                                    .Select(x => Evaluate(scope, x.ToArray()))
+                                    .ToArray();
+
+                                response = function.Invoke(this, scope, solvedParameters);
+                            }
+                            else
+                            {
+                                response = function.Invoke(this, scope, Array.Empty<Token>());
+                            }
+
+                            if (response.Type != TokenType.Null)
+                            {
+                                return response;
+                            }
                         }
-                        else
+                        else if (SupportedIndexers.Any(x => mainToken.Type.Equals(x)))
                         {
-                            response = function.Invoke(this, scope, Array.Empty<Token>());
-                        }
-
-                        if (response.Type != TokenType.Null)
-                        {
-                            return response;
+                            return GetIterator(mainToken)[((long)parameterTokens.First().Value).ToInt()];
                         }
                     }
                     else

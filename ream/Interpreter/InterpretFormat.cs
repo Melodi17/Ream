@@ -14,7 +14,8 @@ namespace Ream.Interpreter
             { TokenType.Boolean, '?' },
             { TokenType.Operator, '+' },
             { TokenType.Value, 'V' },
-            { TokenType.Bracket, '(' }
+            { TokenType.Bracket, '(' },
+            { TokenType.Sequence, '[' },
         };
         private readonly TokenType[] _types;
         public InterpretFormat(Token[] tokens)

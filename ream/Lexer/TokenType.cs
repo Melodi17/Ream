@@ -9,6 +9,7 @@
         Value,
         Bracket,
         Function,
+        Sequence,
         Newline,
         Null
     }
