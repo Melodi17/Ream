@@ -1,11 +1,11 @@
 # Ream
-### Overview
+## Overview
 
 The programming language that uses common sense to prevent you from typing more than you need, simple yet powerful.
 
 Check how to contribute and check change log [here](Development.md)
 
-### Examples
+## Examples
 Hello world sample
 ```ream
 Main.Write('Hello World!')
@@ -13,14 +13,20 @@ Main.Write('Hello World!')
 
 
 
-### Syntax
+## Syntax
 
-**Built in**
+### Built in
 
 Write welcome to output
 
 ```ream
 Main.Write('Welcome')
+```
+
+Read text from input
+
+```ream
+x = Main.Read('What is your name?')
 ```
 
 Wait for 5 seconds before continuing
@@ -35,7 +41,7 @@ This will write the specified token to output for debug purposes
 write 'I am a string!'
 ```
 
-**Types**
+### Types
 
 ```ream
 myStr = 'Hello World!'
@@ -44,7 +50,7 @@ myBool = true
 myNull = null
 ```
 
-**Variables**
+### Variables
 This will detect the type, create if it doesn't exist, and set the value
 ```ream
 x = 5
@@ -58,8 +64,8 @@ x
 
 
 
-**Functions**
-This will create a function with the specified name and parameters
+### Functions
+Create a function with the specified name and parameters
 
 ```ream
 function add : a b
@@ -73,7 +79,18 @@ Call a function with parameters
 add(1, 2)
 ```
 
-**Comparisons**
+Returning values from function
+
+```ream
+function compare : a b
+{
+	return a == b
+}
+
+x = compare('Hello', 'World')
+```
+
+### Comparisons
 
 Check if x is smaller than 10
 
@@ -111,7 +128,7 @@ Check if x and y do not have the same value
 x != y
 ```
 
-**Operators**
+### Operators
 
 Add numbers or string together
 
@@ -137,7 +154,7 @@ Divide number by another
 x / y
 ```
 
-**Scope**
+### Scope
 To force something to the top of a scope, use `global`
 
 ```ream
@@ -148,7 +165,7 @@ global function x
 }
 ```
 
-**Statements**
+### Statements
 If statement
 ```ream
 if true
@@ -157,7 +174,7 @@ if true
 }
 ```
 
-**Loops**
+### Loops
 
 While loop
 

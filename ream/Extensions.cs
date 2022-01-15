@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 
-namespace ream
+namespace Ream
 {
     public static class Extensions
     {

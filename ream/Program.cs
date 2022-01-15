@@ -2,7 +2,7 @@
 using System.IO;
 using System.Linq;
 
-namespace ream
+namespace Ream
 {
     public class Program
     {

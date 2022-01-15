@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Ream.Lexer;
+using Ream.Parser;
 
-namespace ream
+namespace Ream.Interpreter
 {
     public class Interpreter
     {
@@ -31,6 +33,13 @@ namespace ream
                 Console.WriteLine(string.Join(' ', objs.Select(x => x.Value.ToString())));
                 return Token.Null;
             }), TokenType.Function));
+            GlobalScope.Set("Main.Read", Token.ManualCreate(new ExternalFunction("Read", objs =>
+            {
+                Console.Write(string.Join(' ', objs.Select(x => x.Value.ToString())));
+                Token response = new(Console.ReadLine());
+
+                return response;
+            }), TokenType.Function));
             GlobalScope.Set("Main.Sleep", Token.ManualCreate(new ExternalFunction("Sleep", objs =>
             {
                 if (objs.Length == 0)
@@ -49,19 +58,11 @@ namespace ream
         {
             Dive(MainNode, GlobalScope);
         }
-        public void Dive(Node node, Scope scope)
+        public Token Dive(Node node, Scope scope, bool requireReturn = false)
         {
-            /* TODO:
-             * - Implement return values
-             * - Work on import
-             * - Work on statements
-             * - Else + else if
-             * - Investigate multi-operation algorithms
-             */
             Scope localScope = scope.CreateChild();
 
             List<Token> tokens = new();
-
             tokens.AddRange(node.ChildNodes.Where(x => x.HasToken).Select(x => x.Token));
 
             List<Node> childNodes = new();
@@ -72,12 +73,14 @@ namespace ream
                     childNodes.Add(item);
             }
             Reader<Node> childNodeReader = new(childNodes.ToArray());
-
             List<List<Token>> lines = tokens.Split(x => x.Type == TokenType.Newline).Select(x => x.ToList()).Where(x => x.Count > 0).ToList();
             foreach (var item in lines)
             {
                 Token tok = Evaluate(localScope, item.ToArray(), childNodeReader);
+                if (requireReturn && tok.Type != TokenType.Null) return tok;
             }
+
+            return Token.Null;
         }
         public Token Evaluate(Scope scope, Token[] tokens, Reader<Node> childNodeReader = null)
         {
@@ -257,6 +260,7 @@ namespace ream
                             Error("TokenTypeInvalid", "Specified token was not type 'function'");
 
                         IFunction function = (IFunction)functionToken.Value;
+                        Token response;
 
                         if (parameterTokens.Length > 0)
                         {
@@ -265,28 +269,36 @@ namespace ream
                                 .Select(x => Evaluate(scope, x.ToArray()))
                                 .ToArray();
 
-                            function.Invoke(this, scope, solvedParameters);
+                            response = function.Invoke(this, scope, solvedParameters);
                         }
                         else
                         {
-                            function.Invoke(this, scope, Array.Empty<Token>());
+                            response = function.Invoke(this, scope, Array.Empty<Token>());
                         }
 
+                        if (response.Type != TokenType.Null)
+                        {
+                            return response;
+                        }
                     }
                     else
                         Error("TokenTypeInvalid", "Specified token was not type 'bracket'");
                 }
                 else if (tokens.Any(x =>
-                    { string op = x.Value.ToString(); return op == "|" || op == "&"; }))
+                    { string op = x.Value.ToString(); return op == "|" || op == "&" || op == "==" || op == "!="; }))
                 {
                     List<Token> leftTokens = new();
                     Token operatorToken;
                     while (true)
                     {
                         Token currentToken = tokenReader.Read();
+                        string ctValue = currentToken.Value.ToString();
+
                         if (currentToken.Type == TokenType.Operator
-                            && (currentToken.Value.ToString() == "|"
-                                || currentToken.Value.ToString() == "&"))
+                            && (ctValue == "|"
+                                || ctValue == "&"
+                                    || ctValue == "=="
+                                        || ctValue == "!="))
                         {
                             operatorToken = currentToken; break;
                         }
@@ -294,37 +306,48 @@ namespace ream
                     }
                     Token leftToken = Evaluate(scope, leftTokens.ToArray());
                     Token rightToken = Evaluate(scope, tokenReader.Rest());
-
-                    if (!(leftToken.Type == rightToken.Type && leftToken.Type == TokenType.Boolean))
-                        Error("InvalidOperator", $"Specified operator cannot be applied to type {leftToken.Type.ToString().ToLower()} and {rightToken.Type.ToString().ToLower()}");
 
                     string op = operatorToken.Value.ToString();
 
-                    if (op == "|")
+                    if (op.Equals("|"))
+                    {
+                        if (!(leftToken.Type == rightToken.Type && leftToken.Type == TokenType.Boolean))
+                            Error("InvalidOperator", $"Specified operator cannot be applied to type {leftToken.Type.ToString().ToLower()} and {rightToken.Type.ToString().ToLower()}");
                         return Token.ManualCreate((bool)leftToken.Value || (bool)rightToken.Value, TokenType.Boolean);
-                    else if (op == "&")
+                    }
+                    else if (op.Equals("&"))
+                    {
+                        if (!(leftToken.Type == rightToken.Type && leftToken.Type == TokenType.Boolean))
+                            Error("InvalidOperator", $"Specified operator cannot be applied to type {leftToken.Type.ToString().ToLower()} and {rightToken.Type.ToString().ToLower()}");
                         return Token.ManualCreate((bool)leftToken.Value && (bool)rightToken.Value, TokenType.Boolean);
+                    }
+                    else if (op.Equals("=="))
+                        return Token.ManualCreate(leftToken.Value.ToString() == rightToken.Value.ToString(), TokenType.Boolean);
+                    else if (op.Equals("!="))
+                        return Token.ManualCreate(leftToken.Value.ToString() != rightToken.Value.ToString(), TokenType.Boolean);
+
                 }
                 else if (format.IsSimilar(" + "))
                 {
-                    List<Token> leftTokens = new();
-                    Token operatorToken;
-                    while (true)
-                    {
-                        Token currentToken = tokenReader.Read();
-                        if (currentToken.Type == TokenType.Operator)
-                        {
-                            operatorToken = currentToken; break;
-                        }
-                        leftTokens.Add(currentToken);
-                    }
-                    Token leftToken = Evaluate(scope, leftTokens.ToArray());
-                    Token rightToken = Evaluate(scope, tokenReader.Rest());
-
-                    Token leftTokenUnEval = leftTokens.First();
-                    //Token leftToken = Evaluate(scope, new Token[] { leftTokenUnEval });
-                    //Token operatorToken = tokenReader.Read();
+                    //List<Token> leftTokens = new();
+                    //Token operatorToken;
+                    //while (true)
+                    //{
+                    //    Token currentToken = tokenReader.Read();
+                    //    if (currentToken.Type == TokenType.Operator)
+                    //    {
+                    //        operatorToken = currentToken; break;
+                    //    }
+                    //    leftTokens.Add(currentToken);
+                    //}
+                    //Token leftToken = Evaluate(scope, leftTokens.ToArray());
                     //Token rightToken = Evaluate(scope, tokenReader.Rest());
+                    //Token leftTokenUnEval = leftTokens.First();
+
+                    Token leftTokenUnEval = tokenReader.Read();
+                    Token leftToken = Evaluate(scope, new Token[] { leftTokenUnEval });
+                    Token operatorToken = tokenReader.Read();
+                    Token rightToken = Evaluate(scope, tokenReader.Rest());
 
                     string op = operatorToken.Value.ToString();
                     if (op.Equals("="))
@@ -419,190 +442,6 @@ namespace ream
         public void Error(string type, string msg)
         {
             throw new Exception($"Interpreter {type} error, {msg}");
-        }
-    }
-    public class Scope
-    {
-        public Scope ParentScope;
-        public bool HasParent => ParentScope != null;
-        private Dictionary<string, Token> _content;
-        public Scope()
-        {
-            ParentScope = null;
-            _content = new();
-        }
-        public Scope(Scope parent)
-        {
-            ParentScope = parent;
-            _content = new();
-        }
-        public Scope CreateChild()
-        {
-            Scope child = new(this);
-            return child;
-        }
-        public Token this[string key]
-        {
-            get { return Get(key); }
-            set { Set(key, value); }
-        }
-        public bool Has(string key, bool canCheckParent = true)
-        {
-            bool has = _content.ContainsKey(key);
-            if (HasParent && !has && canCheckParent)
-            {
-                has = ParentScope.Has(key);
-            }
-            return has;
-        }
-        public Token Get(string key)
-        {
-            if (Has(key, false))
-                return _content[key];
-            else
-            {
-                if (HasParent)
-                    return ParentScope.Get(key);
-                else
-                    return Token.Null;
-            }
-        }
-        public void Set(string key, Token value, bool globalCreate = false)
-        {
-            //if (Has(key, false))
-            //{
-            //    _content[key] = value;
-            //}
-            //else
-            //{
-            //    if (HasParent)
-            //        if (globalCreate)
-            //            ParentScope.Set(key, value, globalCreate);
-            //        else
-            //            _content[key] = value;
-            //    else
-            //        if (globalCreate) _content[key] = value;
-            //}
-            if (Has(key, false))
-            {
-                _content[key] = value;
-            }
-            else
-            {
-                if (HasParent && Has(key, true))
-                    ParentScope.Set(key, value, globalCreate);
-                else
-                    if (globalCreate && HasParent)
-                    ParentScope.Set(key, value, globalCreate);
-                else
-                    _content[key] = value;
-            }
-        }
-    }
-    public class InterpretFormat
-    {
-        private readonly static Dictionary<TokenType, char> dict = new()
-        {
-            { TokenType.String, 's' },
-            { TokenType.Interger, '1' },
-            { TokenType.Boolean, '?' },
-            { TokenType.Operator, '+' },
-            { TokenType.Value, 'V' },
-            { TokenType.Bracket, '(' }
-        };
-        private readonly TokenType[] _types;
-        public InterpretFormat(Token[] tokens)
-        {
-            _types = tokens.Select(t => t.Type).ToArray();
-        }
-
-        /// <summary>
-        /// Checks if format matches <paramref name="format"/>
-        /// </summary>
-        /// <param name="format">The format to used to scan</param>
-        /// <returns>Format is matching</returns>
-        public bool IsMatching(string format)
-        {
-            if (_types.Length != format.Length)
-                return false;
-            for (int i = 0; i < format.Length; i++)
-            {
-                char ch = format[i];
-                TokenType type = _types[i];
-
-                if (dict[type] == ch || ch == ' ') continue;
-                else return false;
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// Checks if format starts with the <paramref name="format"/>
-        /// </summary>
-        /// <param name="format">The format to used to scan</param>
-        /// <returns>Format is similar</returns>
-        public bool IsSimilar(string format)
-        {
-            if (format.Length > _types.Length)
-                return false;
-            for (int i = 0; i < Math.Min(format.Length, _types.Length); i++)
-            {
-                char ch = format[i];
-                TokenType type = _types[i];
-
-                if (dict[type] == ch || ch == ' ') continue;
-                else return false;
-            }
-            return true;
-        }
-    }
-
-    public interface IFunction
-    {
-        public void Invoke(Interpreter interpreter, Scope scope, Token[] parameters);
-    }
-    public class Function : IFunction
-    {
-        public string Name => _name;
-        private string _name;
-        public string[] ParameterNames => _parameterNames;
-        private string[] _parameterNames;
-        public Node Node => _node;
-        private Node _node;
-
-        public Function(string name, string[] parameterNames, Node node)
-        {
-            _name = name;
-            _parameterNames = parameterNames;
-            _node = node;
-        }
-
-        public void Invoke(Interpreter interpreter, Scope scope, Token[] parameters)
-        {
-            Scope localScope = scope.CreateChild();
-            for (int i = 0; i < Math.Min(parameters.Length, _parameterNames.Length); i++)
-            {
-                localScope.Set(_parameterNames[i], parameters[i]);
-            }
-            interpreter.Dive(_node, localScope);
-        }
-    }
-    public class ExternalFunction : IFunction
-    {
-        public string Name => _name;
-        private string _name;
-        public Func<Token[], Token> Action => _action;
-        private Func<Token[], Token> _action;
-
-        public ExternalFunction(string name, Func<Token[], Token> action)
-        {
-            _name = name;
-            _action = action;
-        }
-
-        public void Invoke(Interpreter interpreter, Scope scope, Token[] parameters)
-        {
-            Token res = _action.Invoke(parameters);
         }
     }
 }
