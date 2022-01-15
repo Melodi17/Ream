@@ -10,7 +10,6 @@
 
 ## Todo
 
-- Implement return values
 - Work on import
 - Create else+else if
 - Fix multi-operator bug
