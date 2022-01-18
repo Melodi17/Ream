@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-namespace Ream.Parsing
+﻿namespace Ream.Parsing
 {
     //public class ASTPrinter : Expr.Visitor<string>
     //{

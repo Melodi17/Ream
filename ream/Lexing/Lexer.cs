@@ -1,7 +1,4 @@
-﻿using Ream;
-using Ream.Lexing;
-
-namespace Ream.Lexing
+﻿namespace Ream.Lexing
 {
     public class Lexer
     {
