@@ -2,12 +2,30 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Newtonsoft.Json;
+using System.Threading.Tasks;
 
-namespace Ream
+namespace Ream.Tools
 {
     public static class Extensions
     {
+        /// <summary>
+        /// Capitalises first character of string
+        /// </summary>
+        /// <param name="source">The string to use</param>
+        /// <returns>A string with a capitalised first letter</returns>
+        public static string FirstCharToUpper(this string source)
+            => source.Length > 0 ? string.Concat(source[0].ToString().ToUpper(), source.AsSpan(1)) : source;
+
+        /// <summary>
+        /// Write multiple lines to <paramref name="source"/>
+        /// </summary>
+        /// <param name="source">The StreamWriter to use</param>
+        /// <param name="lines">The string array to write to <paramref name="source"/></param>
+        public static void WriteLines(this StreamWriter source, string[] lines)
+        {
+            foreach (string line in lines) source.WriteLine(line);
+        }
+
         /// <summary>
         /// Splits an IEnumerable
         /// </summary>
@@ -38,12 +56,13 @@ namespace Ream
 
             return dest;
         }
+
         /// <summary>
         /// Safely convert long to int and prevents overflow
         /// </summary>
         /// <param name="source">The long to convert</param>
         /// <returns>A safely converted interger</returns>
-        public static int ToInt(this long source) 
+        public static int ToInt(this double source)
         {
             return (int)(source % int.MaxValue);
         }
@@ -62,60 +81,6 @@ namespace Ream
             }
 
             return sb.ToString();
-        }
-    }
-    public static class ObjectComparerUtility
-    {
-        public static bool ObjectsAreEqual<T>(T obj1, T obj2)
-        {
-            var obj1Serialized = JsonConvert.SerializeObject(obj1);
-            var obj2Serialized = JsonConvert.SerializeObject(obj2);
-
-            return obj1Serialized == obj2Serialized;
-        }
-    } // Unused (is too slow)
-    public class Reader<T>
-    {
-        private readonly T[] OriginalValues;
-        private List<T> Values;
-        public bool Has => Values.Count > 0;
-        public Reader(T[] values)
-        {
-            OriginalValues = values;
-            Reset();
-        }
-
-        public T Read()
-        {
-            if (Has)
-            {
-                T val = Values.First();
-                Values.RemoveAt(0);
-                return val;
-            }
-            return default;
-        }
-
-        public T Peek()
-        {
-            if (Has)
-            {
-                T val = Values.First();
-                return val;
-            }
-            return default;
-        }
-
-        public T[] Rest(int padding = 0)
-        {
-            T[] vals = Values.SkipLast(padding).ToArray();
-            Values.RemoveRange(0, Values.Count - padding);
-            return vals;
-        }
-
-        public void Reset()
-        {
-            Values = OriginalValues.ToList();
         }
     }
 }
