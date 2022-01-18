@@ -1,4 +1,5 @@
-﻿using Ream.Lexing;
+﻿using System;
+using Ream.Lexing;
 using Ream.Parsing;
 using Ream.Tools;
 
