@@ -15,30 +15,26 @@ Main.Write('Hello World!')
 
 ## Syntax
 
+**Warning:** Syntax is still subject to change
+
 ### Built in
 
 Write welcome to output
 
 ```ream
-Main.Write('Welcome')
+write('Welcome')
 ```
 
 Read text from input
 
 ```ream
-x = Main.Read('What is your name?')
+x = read('What is your name?')
 ```
 
 Wait for 5 seconds before continuing
 
 ```ream
-Main.Sleep(5)
-```
-
-This will write the specified token to output for debug purposes
-
-```ream
-write 'I am a string!'
+sleep(5)
 ```
 
 ### Types
@@ -70,7 +66,7 @@ Create a function with the specified name and parameters
 ```ream
 function add : a b
 {
-    Main.Write(a + b)
+    write(a + b)
 }
 ```
 Call a function with parameters
@@ -90,6 +86,19 @@ function compare : a b
 x = compare('Hello', 'World')
 ```
 
+You can also use a anonymous function (a lambda) these can also support return values
+
+```ream
+x = lambda name
+{
+	write('Hello ' + name)
+}
+
+x('Joe')
+```
+
+ 
+
 ### Comparisons
 
 Check if x is smaller than 10
@@ -98,10 +107,22 @@ Check if x is smaller than 10
 x < 10
 ```
 
+Check if x is smaller or equal to 10
+
+```ream
+x <= 10
+```
+
 Check if x is larger than 10
 
 ```ream
 x > 10
+```
+
+Check if x is larger or equal to 10
+
+```ream
+x >= 10
 ```
 
 Check if either are true
@@ -154,15 +175,24 @@ Divide number by another
 x / y
 ```
 
+Invert a boolean
+
+```ream
+!x
+```
+
+Negate a number
+
+```ream
+-x
+```
+
 ### Scope
+
 To force something to the top of a scope, use `global`
 
 ```ream
 global x = 10
-global function x
-{
-	// ...
-}
 ```
 
 ### Statements
@@ -173,6 +203,19 @@ if true
 	// Code here...
 }
 ```
+
+Else statement
+
+```ream
+if true
+...
+else
+{
+	// Code here...
+}
+```
+
+
 
 ### Loops
 

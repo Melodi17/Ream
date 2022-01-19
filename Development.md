@@ -10,25 +10,17 @@
 
 ## Todo
 
-- Work on import
-- Create else+else if
-- Fix multi-operator bug
-- Fix function calls in functions crashing
+- Implement import
 - Write get started instructions
 - Rewrite documentation
 - Add casting
+- Add classes
 
 ## Changelog
 
-- Moved classes to separate files
-- Allowed functions to return values
-- Added more in-built functions
-- Added abilty to declare sequence
-- Added iteration through sequences, strings, intergers and booleans
-- Get item at index of iterator 
-```ream
-x = ['hello', 'world', '1'] 
-a = x(2)
-Main.Write(a)
-// or x[2]
-```
+- Rewrote all the code from ground up
+- Added variables and operators
+- Added global and local
+- Added conditional statements and loops
+- Added functions
+- Added return values and lambdas
