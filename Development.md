@@ -15,6 +15,8 @@
 - Rewrite documentation
 - Add casting
 - Add classes
+- Implement sequences
+- Implement indexers
 
 ## Changelog
 
