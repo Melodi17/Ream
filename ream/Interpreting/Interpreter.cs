@@ -319,17 +319,21 @@ namespace Ream.Interpreting
         }
         public object VisitFunctionStmt(Stmt.Function stmt)
         {
-            Function function = new(stmt);
+            Function function = new(stmt, Scope);
             Scope.Set(stmt.name, function);
             return null;
         }
-
         public object VisitReturnStmt(Stmt.Return stmt)
         {
             object value = null;
             if (stmt.value != null) value = Evaluate(stmt.value);
 
             throw new Return(value);
+        }
+        public object VisitLambdaExpr(Expr.Lambda expr)
+        {
+            Lambda function = new(expr, Scope);
+            return function;
         }
     }
 }

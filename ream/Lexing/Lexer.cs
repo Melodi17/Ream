@@ -16,6 +16,7 @@
             { "for", TokenType.For },
             { "while", TokenType.While },
             { "function", TokenType.Function },
+            { "lambda", TokenType.Lambda },
             { "global", TokenType.Global },
             { "return", TokenType.Return },
             { "null", TokenType.Null },

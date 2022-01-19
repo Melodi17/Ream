@@ -11,7 +11,16 @@ namespace Ream.Parsing
 
         public Parser(List<Token> tokens)
         {
-            this.Tokens = tokens;
+            this.Tokens = new();
+            Token lastToken = null;
+            foreach (var item in tokens) // Remove empty lines
+            {
+                if (item.Type == TokenType.Newline && lastToken != null && lastToken.Type == TokenType.Newline)
+                    continue;
+
+                lastToken = item;
+                this.Tokens.Add(item);
+            }
         }
         public List<Stmt> Parse()
         {
@@ -173,6 +182,37 @@ namespace Ream.Parsing
 
             return new Expr.Call(callee, paren, arguments);
         }
+        private Expr ExprLambda()
+        {
+            Expr expr = ExprCall();
+
+            if (Match(TokenType.Lambda))
+            {
+                expr = ExprFinishLambda();
+            }
+
+            return expr;
+        }
+        private Expr ExprFinishLambda()
+        {
+            List<Token> parameters = new();
+            if (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace)))
+            {
+                do
+                {
+                    if (parameters.Count >= 255)
+                        Error(Peek(), "Maximum of 255 arguments allowed");
+
+                    parameters.Add(Consume(TokenType.Identifier, "Expected parameter name"));
+                } while (!Check(TokenType.Newline));
+            }
+
+            InsistEnd();
+
+            Consume(TokenType.Left_Brace, "Expected '{' before lambda body");
+            List<Stmt> body = Block();
+            return new Expr.Lambda(parameters, body);
+        }
         private Expr ExprPrimary()
         {
             if (Match(TokenType.True)) return new Expr.Literal(true);
@@ -189,6 +229,10 @@ namespace Ream.Parsing
             if (Match(TokenType.Identifier))
             {
                 return new Expr.Variable(Previous());
+            }
+            if (Match(TokenType.Lambda))
+            {
+                return ExprFinishLambda();
             }
 
             throw Error(Peek(), "Expected expression");
@@ -292,27 +336,27 @@ namespace Ream.Parsing
                 value = Expression();
             }
 
-            ExpectEnd();
+            InsistEnd();
             return new Stmt.Return(keyword, value);
         }
         private List<Stmt> Block()
         {
             List<Stmt> statements = new();
-            ExpectEnd();
+            InsistEnd();
             while (!Check(TokenType.Right_Brace))
             {
                 statements.Add(Declaration());
             }
 
             Consume(TokenType.Right_Brace, "Expected '}' after block");
-            ExpectEnd();
+            InsistEnd();
             return statements;
         }
         private Stmt Function()
         {
             Token name = Consume(TokenType.Identifier, "Expected function name");
             List<Token> parameters = new();
-            if (!Check(TokenType.Newline))
+            if (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace)))
             {
                 Consume(TokenType.Colon, "Expected ':' after function name");
 
@@ -325,7 +369,7 @@ namespace Ream.Parsing
                 } while (!Check(TokenType.Newline));
             }
 
-            ExpectEnd();
+            InsistEnd();
 
             Consume(TokenType.Left_Brace, "Expected '{' before function body");
             List<Stmt> body = Block();
@@ -341,32 +385,32 @@ namespace Ream.Parsing
                 initializer = Expression();
             }
 
-            ExpectEnd();
+            InsistEnd();
             return isGlobal ? new Stmt.Global(name, initializer) : new Stmt.Local(name, initializer);
         }
         private Stmt ExpressionStatement()
         {
             Expr expr = Expression();
-            ExpectEnd();
+            InsistEnd();
             return new Stmt.Expression(expr);
         }
         private Stmt PrintStatement()
         {
             Expr value = Expression();
-            ExpectEnd();
+            InsistEnd();
             return new Stmt.Write(value);
         }
         private Stmt IfStatement()
         {
             Expr condition = Expression();
-            ExpectEnd();
+            InsistEnd();
 
             Stmt thenBranch = Statement();
 
             Stmt elseBranch = null;
             if (Match(TokenType.Else))
             {
-                ExpectEnd();
+                InsistEnd();
                 elseBranch = Statement();
             }
 
@@ -375,7 +419,7 @@ namespace Ream.Parsing
         private Stmt WhileStatement()
         {
             Expr condition = Expression();
-            ExpectEnd();
+            InsistEnd();
 
             Stmt body = Statement();
 
@@ -390,7 +434,7 @@ namespace Ream.Parsing
                 Consume(TokenType.Colon, "Expected ':' after 'for' identifier");
             }
             Expr iterator = Expression();
-            ExpectEnd();
+            InsistEnd();
 
             Stmt body = Statement();
 

@@ -12,7 +12,7 @@ namespace Ream
         public static bool RuntimeErrorOccured = false;
         public static void Main(string[] args)
         {
-            //UpdateAST();
+            UpdateAST();
 
             if (args.Any())
                 RunFile(args.First());
@@ -28,6 +28,7 @@ namespace Ream
                 "Binary   : Expr left, Token @operator, Expr right",
                 "Call     : Expr callee, Token paren, List<Expr> arguments",
                 "Grouping : Expr expression",
+                "Lambda   : List<Token> parameters, List<Stmt> body",
                 "Literal  : Object value",
                 "Logical  : Expr left, Token @operator, Expr right",
                 "Unary    : Token @operator, Expr right",
