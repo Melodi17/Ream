@@ -9,8 +9,10 @@ namespace Ream.Parsing
      {
          public T VisitBlockStmt(Block stmt);
          public T VisitExpressionStmt(Expression stmt);
+         public T VisitFunctionStmt(Function stmt);
          public T VisitIfStmt(If stmt);
          public T VisitWriteStmt(Write stmt);
+         public T VisitReturnStmt(Return stmt);
          public T VisitGlobalStmt(Global stmt);
          public T VisitLocalStmt(Local stmt);
          public T VisitWhileStmt(While stmt);
@@ -46,6 +48,25 @@ namespace Ream.Parsing
           }
       }
 
+     public class Function : Stmt
+      {
+     public readonly Token name;
+     public readonly List<Token> parameters;
+     public readonly List<Stmt> body;
+
+         public Function(Token name, List<Token> parameters, List<Stmt> body)
+          {
+             this.name = name;
+             this.parameters = parameters;
+             this.body = body;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitFunctionStmt(this);
+          }
+      }
+
      public class If : Stmt
       {
      public readonly Expr condition;
@@ -77,6 +98,23 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitWriteStmt(this);
+          }
+      }
+
+     public class Return : Stmt
+      {
+     public readonly Token keyword;
+     public readonly Expr value;
+
+         public Return(Token keyword, Expr value)
+          {
+             this.keyword = keyword;
+             this.value = value;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitReturnStmt(this);
           }
       }
 

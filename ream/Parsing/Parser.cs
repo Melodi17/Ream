@@ -262,6 +262,7 @@ namespace Ream.Parsing
             {
                 if (Match(TokenType.Global)) return VariableDeclaration(true);
                 if (Match(TokenType.Local)) return VariableDeclaration(false);
+                if (Match(TokenType.Function)) return Function();
 
                 return Statement();
             }
@@ -277,9 +278,22 @@ namespace Ream.Parsing
             if (Match(TokenType.While)) return WhileStatement();
             if (Match(TokenType.For)) return ForStatement();
             if (Match(TokenType.Write)) return PrintStatement();
+            if (Match(TokenType.Return)) return ReturnStatement();
             if (Match(TokenType.Left_Brace)) return new Stmt.Block(Block());
 
             return ExpressionStatement();
+        }
+        private Stmt ReturnStatement()
+        {
+            Token keyword = Previous();
+            Expr value = null;
+            if (!Check(TokenType.Newline))
+            {
+                value = Expression();
+            }
+
+            ExpectEnd();
+            return new Stmt.Return(keyword, value);
         }
         private List<Stmt> Block()
         {
@@ -293,6 +307,29 @@ namespace Ream.Parsing
             Consume(TokenType.Right_Brace, "Expected '}' after block");
             ExpectEnd();
             return statements;
+        }
+        private Stmt Function()
+        {
+            Token name = Consume(TokenType.Identifier, "Expected function name");
+            List<Token> parameters = new();
+            if (!Check(TokenType.Newline))
+            {
+                Consume(TokenType.Colon, "Expected ':' after function name");
+
+                do
+                {
+                    if (parameters.Count >= 255)
+                        Error(Peek(), "Maximum of 255 arguments allowed");
+
+                    parameters.Add(Consume(TokenType.Identifier, "Expected parameter name"));
+                } while (!Check(TokenType.Newline));
+            }
+
+            ExpectEnd();
+
+            Consume(TokenType.Left_Brace, "Expected '{' before function body");
+            List<Stmt> body = Block();
+            return new Stmt.Function(name, parameters, body);
         }
         private Stmt VariableDeclaration(bool isGlobal)
         {
@@ -325,9 +362,11 @@ namespace Ream.Parsing
             ExpectEnd();
 
             Stmt thenBranch = Statement();
+
             Stmt elseBranch = null;
             if (Match(TokenType.Else))
             {
+                ExpectEnd();
                 elseBranch = Statement();
             }
 
@@ -360,6 +399,12 @@ namespace Ream.Parsing
         private void ExpectEnd()
         {
             Consume(TokenType.Newline, "Expected line to end", true);
+        }
+        private bool InsistEnd()
+        {
+            bool ended = Check(TokenType.Newline) || AtEnd;
+            if (ended) Advance();
+            return ended;
         }
     }
 }

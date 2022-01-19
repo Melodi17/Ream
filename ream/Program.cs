@@ -38,8 +38,10 @@ namespace Ream
             {
                 "Block      : List<Stmt> statements",
                 "Expression : Expr expression",
+                "Function   : Token name, List<Token> parameters, List<Stmt> body",
                 "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
                 "Write      : Expr expression",
+                "Return     : Token keyword, Expr value",
                 "Global     : Token name, Expr initializer",
                 "Local      : Token name, Expr initializer",
                 "While      : Expr condition, Stmt body",

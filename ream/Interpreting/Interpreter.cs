@@ -6,14 +6,14 @@ namespace Ream.Interpreting
 {
     public class Interpreter : Expr.Visitor<Object>, Stmt.Visitor<Object>
     {
-        private readonly Scope Globals;
+        public readonly Scope Globals;
         private Scope Scope;
         public Interpreter()
         {
             Globals = new();
             Scope = Globals;
 
-            Globals.Define("write", new ExternalCustomCallable((i, l) => 
+            Globals.Define("write", new ExternalFunction((i, l) =>
             {
                 Console.WriteLine(Stringify(l.First()));
                 return null;
@@ -316,6 +316,20 @@ namespace Ream.Interpreting
             }
 
             return function.Call(this, args);
+        }
+        public object VisitFunctionStmt(Stmt.Function stmt)
+        {
+            Function function = new(stmt);
+            Scope.Set(stmt.name, function);
+            return null;
+        }
+
+        public object VisitReturnStmt(Stmt.Return stmt)
+        {
+            object value = null;
+            if (stmt.value != null) value = Evaluate(stmt.value);
+
+            throw new Return(value);
         }
     }
 }

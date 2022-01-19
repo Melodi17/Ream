@@ -22,7 +22,10 @@ namespace Ream.Interpreting
         {
             Values.Add(key, value);
         }
-
+        public void SetLocal(Token key, object value)
+        {
+            Values[key.Raw] = value;
+        }
         public void Set(Token key, object value, bool globalCreate = false)
         {
             string keyName = key.Raw;
