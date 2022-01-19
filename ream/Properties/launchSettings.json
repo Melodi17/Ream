@@ -6,6 +6,10 @@
     "Ream Script": {
       "commandName": "Project",
       "commandLineArgs": "script.r"
+    },
+    "Ream Update AST": {
+      "commandName": "Project",
+      "commandLineArgs": "UPDATE_AST"
     }
   }
 }

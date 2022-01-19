@@ -182,17 +182,6 @@ namespace Ream.Parsing
 
             return new Expr.Call(callee, paren, arguments);
         }
-        private Expr ExprLambda()
-        {
-            Expr expr = ExprCall();
-
-            if (Match(TokenType.Lambda))
-            {
-                expr = ExprFinishLambda();
-            }
-
-            return expr;
-        }
         private Expr ExprFinishLambda()
         {
             List<Token> parameters = new();
@@ -230,10 +219,7 @@ namespace Ream.Parsing
             {
                 return new Expr.Variable(Previous());
             }
-            if (Match(TokenType.Lambda))
-            {
-                return ExprFinishLambda();
-            }
+            if (Match(TokenType.Lambda)) return ExprFinishLambda();
 
             throw Error(Peek(), "Expected expression");
         }

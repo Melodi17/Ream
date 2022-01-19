@@ -12,7 +12,8 @@ namespace Ream
         public static bool RuntimeErrorOccured = false;
         public static void Main(string[] args)
         {
-            UpdateAST();
+            if (args.Any(x => x == "UPDATE_AST"))
+                UpdateAST();   
 
             if (args.Any())
                 RunFile(args.First());
