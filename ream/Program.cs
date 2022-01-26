@@ -29,6 +29,7 @@ namespace Ream
                 "Binary   : Expr left, Token @operator, Expr right",
                 "Call     : Expr callee, Token paren, List<Expr> arguments",
                 "Grouping : Expr expression",
+                "Sequence : List<Expr> items",
                 "Lambda   : List<Token> parameters, List<Stmt> body",
                 "Literal  : Object value",
                 "Logical  : Expr left, Token @operator, Expr right",
@@ -51,6 +52,7 @@ namespace Ream
             }.ToList());
 
             Console.WriteLine("[ASTGenerator] AST nodes Expr and Stmt have been updated");
+            Environment.Exit(0);
         }
 
         private static void RunFile(string path)

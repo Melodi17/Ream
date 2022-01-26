@@ -8,7 +8,7 @@ Check how to contribute and check change log [here](Development.md)
 ## Examples
 Hello world sample
 ```ream
-Main.Write('Hello World!')
+write('Hello World!')
 ```
 
 

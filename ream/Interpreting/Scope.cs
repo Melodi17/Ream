@@ -36,15 +36,15 @@ namespace Ream.Interpreting
             else
                 // If it exists anywhere
                 if (Has(keyName, true))
-                    Parent.Set(key, value);
-                else
+                Parent.Set(key, value);
+            else
                     // We need to create it
                     // Create it globally
                     if (globalCreate)
-                        Global.Set(key, value);
-                    else
-                        // Create it locally
-                        Values[keyName] = value;
+                Global.Set(key, value);
+            else
+                // Create it locally
+                Values[keyName] = value;
         }
 
         public bool Has(string key, bool canCheckParent = true)
@@ -71,5 +71,25 @@ namespace Ream.Interpreting
             //throw new RuntimeError(key, $"Undefined variable '{keyName}'"); // return null instead
             return null;
         }
+
+        //public void SetAt(int dist, Token name, object value)
+        //{
+        //    Ancestor(dist).Values[name.Raw] = value;
+        //}
+        //public object GetAt(int dist, string name)
+        //{
+        //    return Ancestor(dist).Values[name];
+        //}
+
+        //public Scope Ancestor(int dist)
+        //{
+        //    Scope scope = this;
+        //    for (int i = 0; i < dist; i++)
+        //    {
+        //        scope = scope.Parent;
+        //    }
+
+        //    return scope;
+        //}
     }
 }

@@ -11,6 +11,7 @@ namespace Ream.Parsing
          public T VisitBinaryExpr(Binary expr);
          public T VisitCallExpr(Call expr);
          public T VisitGroupingExpr(Grouping expr);
+         public T VisitSequenceExpr(Sequence expr);
          public T VisitLambdaExpr(Lambda expr);
          public T VisitLiteralExpr(Literal expr);
          public T VisitLogicalExpr(Logical expr);
@@ -84,6 +85,21 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitGroupingExpr(this);
+          }
+      }
+
+     public class Sequence : Expr
+      {
+     public readonly List<Expr> items;
+
+         public Sequence(List<Expr> items)
+          {
+             this.items = items;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitSequenceExpr(this);
           }
       }
 

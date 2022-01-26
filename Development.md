@@ -15,7 +15,6 @@
 - Rewrite documentation
 - Add casting
 - Add classes
-- Implement sequences
 - Implement indexers
 
 ## Changelog
@@ -26,3 +25,5 @@
 - Added conditional statements and loops
 - Added functions
 - Added return values and lambdas
+- Added sequences
+- Added sleep and read functions

@@ -15,7 +15,8 @@ namespace Ream.Parsing
             Token lastToken = null;
             foreach (var item in tokens) // Remove empty lines
             {
-                if (item.Type == TokenType.Newline && lastToken != null && lastToken.Type == TokenType.Newline)
+                if (item.Type == TokenType.Newline
+                    && lastToken != null && lastToken.Type == TokenType.Newline)
                     continue;
 
                 lastToken = item;
@@ -202,6 +203,24 @@ namespace Ream.Parsing
             List<Stmt> body = Block();
             return new Expr.Lambda(parameters, body);
         }
+        private Expr ExprFinishSequence()
+        {
+            List<Expr> items = new();
+            if (!Check(TokenType.Right_Square))
+            {
+                do
+                {
+                    if (items.Count >= 255)
+                        Error(Peek(), "Maximum of 255 items allowed");
+
+                    items.Add(Expression());
+                } while (Match(TokenType.Comma));
+            }
+
+            Token paren = Consume(TokenType.Right_Square, "Expected ']' after arguments");
+
+            return new Expr.Sequence(items);
+        }
         private Expr ExprPrimary()
         {
             if (Match(TokenType.True)) return new Expr.Literal(true);
@@ -214,6 +233,10 @@ namespace Ream.Parsing
                 Expr expr = Expression();
                 Consume(TokenType.Right_Parenthesis, "Expected ')' after expression");
                 return new Expr.Grouping(expr);
+            }
+            if (Match(TokenType.Left_Square))
+            {
+                return ExprFinishSequence();
             }
             if (Match(TokenType.Identifier))
             {

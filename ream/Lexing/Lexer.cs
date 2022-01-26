@@ -23,7 +23,7 @@
             { "class", TokenType.Class },
             { "this", TokenType.This },
             { "true", TokenType.True },
-            { "false", TokenType.True },
+            { "false", TokenType.False },
             { "write", TokenType.Write },
         };
 
