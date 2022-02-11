@@ -19,7 +19,7 @@
 
         If, Else, Elif, For, While, Function, Global,
         Return, Null, Class, This, Write, True, False,
-        Local, Lambda,
+        Local, Lambda, Dynamic, Final, Initializer, Static,
 
         Newline, End
     }

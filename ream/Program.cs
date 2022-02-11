@@ -28,11 +28,14 @@ namespace Ream
                 "Assign   : Token name, Expr value",
                 "Binary   : Expr left, Token @operator, Expr right",
                 "Call     : Expr callee, Token paren, List<Expr> arguments",
+                "Get      : Expr obj, Token name",
                 "Grouping : Expr expression",
                 "Sequence : List<Expr> items",
                 "Lambda   : List<Token> parameters, List<Stmt> body",
                 "Literal  : Object value",
                 "Logical  : Expr left, Token @operator, Expr right",
+                "Set      : Expr obj, Token name, Expr value",
+                "This     : Token keyword",
                 "Unary    : Token @operator, Expr right",
                 "Variable : Token name"
             }.ToList());
@@ -40,13 +43,13 @@ namespace Ream
             ASTGenerator.DefineAst(Path.Join("..", "..", "..", "Interpreting", "Stmt.cs"), "Stmt", new string[]
             {
                 "Block      : List<Stmt> statements",
+                "Class      : Token name, List<Stmt.Function> functions",
                 "Expression : Expr expression",
-                "Function   : Token name, List<Token> parameters, List<Stmt> body",
+                "Function   : Token name, VariableType type, List<Token> parameters, List<Stmt> body",
                 "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
                 "Write      : Expr expression",
                 "Return     : Token keyword, Expr value",
-                "Global     : Token name, Expr initializer",
-                "Local      : Token name, Expr initializer",
+                "Typed      : Token name, Expr initializer, VariableType type",
                 "While      : Expr condition, Stmt body",
                 "For        : Token name, Expr iterator, Stmt body",
             }.ToList());

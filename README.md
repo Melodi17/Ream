@@ -8,7 +8,7 @@ Check how to contribute and check change log [here](Development.md)
 ## Examples
 Hello world sample
 ```ream
-write('Hello World!')
+Main.WriteLine('Hello World!')
 ```
 
 
@@ -22,19 +22,19 @@ write('Hello World!')
 Write welcome to output
 
 ```ream
-write('Welcome')
+Main.WriteLine('Welcome')
 ```
 
 Read text from input
 
 ```ream
-x = read('What is your name?')
+x = Main.Read('What is your name?')
 ```
 
 Wait for 5 seconds before continuing
 
 ```ream
-sleep(5)
+Main.Sleep(5)
 ```
 
 ### Types
@@ -44,6 +44,7 @@ myStr = 'Hello World!'
 myInt = 5
 myBool = true
 myNull = null
+myArr = ['Apple', 'Bannana', 5]
 ```
 
 ### Variables
@@ -58,15 +59,13 @@ Get a variable's content
 x
 ```
 
-
-
 ### Functions
 Create a function with the specified name and parameters
 
 ```ream
 function add : a b
 {
-    write(a + b)
+    Main.Write(a + b)
 }
 ```
 Call a function with parameters
@@ -91,13 +90,57 @@ You can also use a anonymous function (a lambda) these can also support return v
 ```ream
 x = lambda name
 {
-	write('Hello ' + name)
+	Main.Write('Hello ' + name)
 }
 
 x('Joe')
 ```
 
- 
+ ### Classes
+
+Create a class
+
+```ream
+class Lunch
+{
+	// Code here...
+}
+```
+
+Create a constructor in a class (can have parameters)
+
+```ream
+initializer Init
+{
+	Main.Write('You created a instance of Lunch!')
+}
+```
+
+Create a function in a class (can have parameters)
+
+```ream
+myFunction
+{
+	Main.Write('You called myFunction in Lunch!')
+}
+```
+
+Create static constructor of a class
+
+```ream
+static initializer StaticInit
+{
+	Main.Write('You created a instance of Lunch!')
+}
+```
+
+Set a variable within class
+
+```ream
+this.done = true
+```
+
+
 
 ### Comparisons
 
@@ -187,15 +230,53 @@ Negate a number
 -x
 ```
 
-### Scope
+### Typing
 
-To force something to the top of a scope, use `global`
+To force an variable/function to the top of a scope, use `global`
 
 ```ream
-global x = 10
+function declareX
+{
+	global x = 10
+}
+
+write(x) // Returns null since it does not exist
+delcareX()
+write(x) // Returns 10
 ```
 
+To make variable/function only available in current scope, use `local`
+
+```ream
+local x = 10
+```
+
+To make a variable read-only once it's value is not null, use `final`
+
+```ream
+final x = 10
+
+write(x) // Returns 10
+x = 5
+write(x) // Returns 10
+```
+
+To make a variable evaluated every time it is get, use `dynamic`
+
+```ream
+a = 5
+b = 2
+dynamic x = a + b
+
+write(x) // Returns 7
+a = 3
+write(x) // Returns 5
+```
+
+
+
 ### Statements
+
 If statement
 ```ream
 if true

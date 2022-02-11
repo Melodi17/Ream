@@ -1,4 +1,5 @@
 using Ream.Lexing;
+using Ream.Interpreting;
 
 namespace Ream.Parsing
 {
@@ -10,11 +11,14 @@ namespace Ream.Parsing
          public T VisitAssignExpr(Assign expr);
          public T VisitBinaryExpr(Binary expr);
          public T VisitCallExpr(Call expr);
+         public T VisitGetExpr(Get expr);
          public T VisitGroupingExpr(Grouping expr);
          public T VisitSequenceExpr(Sequence expr);
          public T VisitLambdaExpr(Lambda expr);
          public T VisitLiteralExpr(Literal expr);
          public T VisitLogicalExpr(Logical expr);
+         public T VisitSetExpr(Set expr);
+         public T VisitThisExpr(This expr);
          public T VisitUnaryExpr(Unary expr);
          public T VisitVariableExpr(Variable expr);
      }
@@ -70,6 +74,23 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitCallExpr(this);
+          }
+      }
+
+     public class Get : Expr
+      {
+     public readonly Expr obj;
+     public readonly Token name;
+
+         public Get(Expr obj, Token name)
+          {
+             this.obj = obj;
+             this.name = name;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitGetExpr(this);
           }
       }
 
@@ -151,6 +172,40 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitLogicalExpr(this);
+          }
+      }
+
+     public class Set : Expr
+      {
+     public readonly Expr obj;
+     public readonly Token name;
+     public readonly Expr value;
+
+         public Set(Expr obj, Token name, Expr value)
+          {
+             this.obj = obj;
+             this.name = name;
+             this.value = value;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitSetExpr(this);
+          }
+      }
+
+     public class This : Expr
+      {
+     public readonly Token keyword;
+
+         public This(Token keyword)
+          {
+             this.keyword = keyword;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitThisExpr(this);
           }
       }
 

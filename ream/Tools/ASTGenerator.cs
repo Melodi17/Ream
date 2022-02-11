@@ -10,6 +10,7 @@
             sw.WriteLines(new string[]
             {
                 "using Ream.Lexing;",
+                "using Ream.Interpreting;",
                 "",
                 $"namespace Ream.Parsing",
                 "{",

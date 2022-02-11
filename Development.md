@@ -8,13 +8,12 @@
 - Document new features
 - Commit and push back up
 
-## Todo
+## To-do
 
 - Implement import
 - Write get started instructions
 - Rewrite documentation
 - Add casting
-- Add classes
 - Implement indexers
 
 ## Changelog
@@ -27,3 +26,11 @@
 - Added return values and lambdas
 - Added sequences
 - Added sleep and read functions
+- Added classes
+- Added initializing classes
+- Added final, dynamic, initializer and local type
+- Added type stacking (allowing multiple types for the same variable/function)
+- Added static properties and functions
+- Added static initializers
+- Added C# native class and function support into language
+- Added implicit method attribute getter

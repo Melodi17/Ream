@@ -8,6 +8,7 @@ namespace Ream.Interpreting
         public Scope Global => HasParent ? Parent.Global : this;
         public readonly Scope Parent;
         private readonly Dictionary<string, object> Values = new();
+        private readonly Dictionary<string, VariableData> VariableData = new();
 
         public Scope()
         {
@@ -18,33 +19,69 @@ namespace Ream.Interpreting
             this.Parent = parent;
         }
 
-        public void Define(string key, object value)
+        public void Define(string key, object value, VariableType type = VariableType.Normal)
         {
-            Values.Add(key, value);
+            Values[key] = value;
+            VariableData[key] = new(type, this);
         }
-        public void SetLocal(Token key, object value)
+        public VariableType AutoDetectType(Token key, VariableType manualType)
         {
-            Values[key.Raw] = value;
+            VariableType type = manualType.HasFlag(VariableType.Normal)
+                ? GetData(key)?.Type ?? manualType : manualType;
+            
+            return type;
         }
-        public void Set(Token key, object value, bool globalCreate = false)
+        public void Set(Token key, object value, VariableType manualType = VariableType.Normal)
         {
             string keyName = key.Raw;
 
-            // If it exists locally
-            if (Has(keyName, false))
+            VariableType type = AutoDetectType(key, manualType);
+
+            // Variable is not null and is readonly, so it cannot be changed
+            if (Get(key) != null && GetData(key).Type.HasFlag(VariableType.Final))
+                return;
+
+            if (type.HasFlag(VariableType.Global))
+            {
+                if (HasParent)
+                {
+                    Global.Set(key, value, type);
+                }
+                else
+                {
+                    Values[keyName] = value;
+                    VariableData[key.Raw] = new(type, this);
+                }
+            }
+            else if (type.HasFlag(VariableType.Local))
+            {
                 Values[keyName] = value;
+                VariableData[key.Raw] = new(type, this);
+            }
             else
-                // If it exists anywhere
-                if (Has(keyName, true))
-                Parent.Set(key, value);
-            else
-                    // We need to create it
-                    // Create it globally
-                    if (globalCreate)
-                Global.Set(key, value);
-            else
-                // Create it locally
-                Values[keyName] = value;
+            {
+                // If it exists locally
+                if (Has(keyName, false))
+                {
+                    Values[keyName] = value;
+                    VariableData[key.Raw] = new(type, this);
+                }
+                else
+                {
+                    // If it exists anywhere
+                    if (Has(keyName, true))
+                    {
+                        // Recall
+                        Parent.Set(key, value, type);
+                    }
+                    else
+                    {
+                        // We need to create it
+                        Values[keyName] = value;
+                        VariableData[key.Raw] = new(type, this);
+                    }
+                }
+            }
         }
 
         public bool Has(string key, bool canCheckParent = true)
@@ -72,6 +109,21 @@ namespace Ream.Interpreting
             return null;
         }
 
+        public VariableData GetData(Token key)
+        {
+            string keyName = key.Raw;
+
+            // If can be found locally
+            if (VariableData.ContainsKey(keyName))
+                return VariableData[keyName];
+
+            // If can't be found locally and has a parent to check
+            if (HasParent) return Parent.GetData(key);
+
+            //throw new RuntimeError(key, $"Undefined variable '{keyName}'"); // return null instead
+            return null;
+        }
+
         //public void SetAt(int dist, Token name, object value)
         //{
         //    Ancestor(dist).Values[name.Raw] = value;
@@ -91,5 +143,20 @@ namespace Ream.Interpreting
 
         //    return scope;
         //}
+
+        public Dictionary<string, object> All()
+            => Values;
+    }
+
+    public class VariableData
+    {
+        public VariableType Type;
+        public Scope Scope;
+
+        public VariableData(VariableType type, Scope scope)
+        {
+            Type = type;
+            Scope = scope;
+        }
     }
 }

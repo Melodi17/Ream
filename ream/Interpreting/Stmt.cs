@@ -1,4 +1,5 @@
 using Ream.Lexing;
+using Ream.Interpreting;
 
 namespace Ream.Parsing
 {
@@ -8,13 +9,13 @@ namespace Ream.Parsing
      public interface Visitor<T>
      {
          public T VisitBlockStmt(Block stmt);
+         public T VisitClassStmt(Class stmt);
          public T VisitExpressionStmt(Expression stmt);
          public T VisitFunctionStmt(Function stmt);
          public T VisitIfStmt(If stmt);
          public T VisitWriteStmt(Write stmt);
          public T VisitReturnStmt(Return stmt);
-         public T VisitGlobalStmt(Global stmt);
-         public T VisitLocalStmt(Local stmt);
+         public T VisitTypedStmt(Typed stmt);
          public T VisitWhileStmt(While stmt);
          public T VisitForStmt(For stmt);
      }
@@ -30,6 +31,23 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitBlockStmt(this);
+          }
+      }
+
+     public class Class : Stmt
+      {
+     public readonly Token name;
+     public readonly List<Stmt.Function> functions;
+
+         public Class(Token name, List<Stmt.Function> functions)
+          {
+             this.name = name;
+             this.functions = functions;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitClassStmt(this);
           }
       }
 
@@ -51,12 +69,14 @@ namespace Ream.Parsing
      public class Function : Stmt
       {
      public readonly Token name;
+     public readonly VariableType type;
      public readonly List<Token> parameters;
      public readonly List<Stmt> body;
 
-         public Function(Token name, List<Token> parameters, List<Stmt> body)
+         public Function(Token name, VariableType type, List<Token> parameters, List<Stmt> body)
           {
              this.name = name;
+             this.type = type;
              this.parameters = parameters;
              this.body = body;
           }
@@ -118,37 +138,22 @@ namespace Ream.Parsing
           }
       }
 
-     public class Global : Stmt
+     public class Typed : Stmt
       {
      public readonly Token name;
      public readonly Expr initializer;
+     public readonly VariableType type;
 
-         public Global(Token name, Expr initializer)
+         public Typed(Token name, Expr initializer, VariableType type)
           {
              this.name = name;
              this.initializer = initializer;
+             this.type = type;
           }
 
           public override T Accept<T>(Visitor<T> visitor)
           {
-             return visitor.VisitGlobalStmt(this);
-          }
-      }
-
-     public class Local : Stmt
-      {
-     public readonly Token name;
-     public readonly Expr initializer;
-
-         public Local(Token name, Expr initializer)
-          {
-             this.name = name;
-             this.initializer = initializer;
-          }
-
-          public override T Accept<T>(Visitor<T> visitor)
-          {
-             return visitor.VisitLocalStmt(this);
+             return visitor.VisitTypedStmt(this);
           }
       }
 

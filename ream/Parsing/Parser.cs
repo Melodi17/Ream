@@ -1,4 +1,5 @@
-﻿using Ream.Lexing;
+﻿using Ream.Interpreting;
+using Ream.Lexing;
 
 namespace Ream.Parsing
 {
@@ -50,6 +51,11 @@ namespace Ream.Parsing
                 {
                     Token name = ((Expr.Variable)expr).name;
                     return new Expr.Assign(name, value);
+                }
+                else if (expr is Expr.Get)
+                {
+                    Expr.Get get = expr as Expr.Get;
+                    return new Expr.Set(get.obj, get.name, value);
                 }
 
                 Error(eq, "Invalid assignment target");
@@ -156,6 +162,11 @@ namespace Ream.Parsing
                 {
                     expr = ExprFinishCall(expr);
                 }
+                else if (Match(TokenType.Period))
+                {
+                    Token name = Consume(TokenType.Identifier, "Expected property name after '.'");
+                    expr = new Expr.Get(expr, name);
+                }
                 else
                 {
                     break;
@@ -179,7 +190,7 @@ namespace Ream.Parsing
             }
 
             Token paren = Consume(TokenType.Right_Parenthesis, "Expected ')' after arguments");
-            //ExpectEnd();
+            InsistEnd();
 
             return new Expr.Call(callee, paren, arguments);
         }
@@ -194,7 +205,7 @@ namespace Ream.Parsing
                         Error(Peek(), "Maximum of 255 arguments allowed");
 
                     parameters.Add(Consume(TokenType.Identifier, "Expected parameter name"));
-                } while (!Check(TokenType.Newline));
+                } while (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace)));
             }
 
             InsistEnd();
@@ -223,6 +234,7 @@ namespace Ream.Parsing
         }
         private Expr ExprPrimary()
         {
+            if (Match(TokenType.This)) return new Expr.This(Previous());
             if (Match(TokenType.True)) return new Expr.Literal(true);
             if (Match(TokenType.False)) return new Expr.Literal(false);
             if (Match(TokenType.Null)) return new Expr.Literal(null);
@@ -313,9 +325,24 @@ namespace Ream.Parsing
         {
             try
             {
-                if (Match(TokenType.Global)) return VariableDeclaration(true);
-                if (Match(TokenType.Local)) return VariableDeclaration(false);
-                if (Match(TokenType.Function)) return Function();
+                if (Peek().Type.IsVariableType())
+                {
+                    VariableType dat = Advance().Type.ToVariableType();
+                    while (Peek().Type.IsVariableType())
+                    {
+                        dat |= Advance().Type.ToVariableType();
+                    }
+                    if (Match(TokenType.Function))
+                        return FunctionDeclaration(dat);
+                    else
+                        return VariableDeclaration<Stmt.Typed>(dat);
+                }
+                //if (Match(TokenType.Local)) return VariableDeclaration<Stmt.Local>();
+                //if (Match(TokenType.Global)) return VariableDeclaration<Stmt.Global>();
+                //if (Match(TokenType.Dynamic)) return VariableDeclaration<Stmt.Dynamic>();
+                //if (Match(TokenType.Final)) return VariableDeclaration<Stmt.Final>();
+                if (Match(TokenType.Function)) return FunctionDeclaration(VariableType.Normal);
+                if (Match(TokenType.Class)) return ClassDeclaration();
 
                 return Statement();
             }
@@ -361,7 +388,7 @@ namespace Ream.Parsing
             InsistEnd();
             return statements;
         }
-        private Stmt Function()
+        private Stmt FunctionDeclaration(VariableType type)
         {
             Token name = Consume(TokenType.Identifier, "Expected function name");
             List<Token> parameters = new();
@@ -382,9 +409,9 @@ namespace Ream.Parsing
 
             Consume(TokenType.Left_Brace, "Expected '{' before function body");
             List<Stmt> body = Block();
-            return new Stmt.Function(name, parameters, body);
+            return new Stmt.Function(name, type, parameters, body);
         }
-        private Stmt VariableDeclaration(bool isGlobal)
+        private Stmt VariableDeclaration<T>(VariableType type)
         {
             Token name = Consume(TokenType.Identifier, "Expected variable name");
 
@@ -395,7 +422,50 @@ namespace Ream.Parsing
             }
 
             InsistEnd();
-            return isGlobal ? new Stmt.Global(name, initializer) : new Stmt.Local(name, initializer);
+            return (Stmt)Activator.CreateInstance(typeof(T), name, initializer, type);
+        }
+        private Stmt VariableDeclaration<T>()
+        {
+            Token name = Consume(TokenType.Identifier, "Expected variable name");
+
+            Expr initializer = null;
+            if (Match(TokenType.Equal))
+            {
+                initializer = Expression();
+            }
+
+            InsistEnd();
+            return (Stmt)Activator.CreateInstance(typeof(T), name, initializer);
+        }
+        private Stmt ClassDeclaration()
+        {
+            Token name = Consume(TokenType.Identifier, "Expected class name");
+            InsistEnd();
+            Consume(TokenType.Left_Brace, "Expected '{' before class body");
+            InsistEnd();
+
+            List<Stmt.Function> functions = new();
+            while (!Check(TokenType.Right_Brace) && !AtEnd) 
+            {
+                if (Peek().Type.IsVariableType())
+                {
+                    VariableType dat = Advance().Type.ToVariableType();
+                    while (Peek().Type.IsVariableType())
+                    {
+                        dat |= Advance().Type.ToVariableType();
+                    }
+                    functions.Add(FunctionDeclaration(dat) as Stmt.Function);
+                }
+                else
+                {
+                    functions.Add(FunctionDeclaration(VariableType.Normal) as Stmt.Function);
+                }
+            }
+
+            Consume(TokenType.Right_Brace, "Expected '}' after class body");
+            InsistEnd();
+
+            return new Stmt.Class(name, functions);
         }
         private Stmt ExpressionStatement()
         {

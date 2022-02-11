@@ -15,9 +15,20 @@
             Line = line;
         }
 
+        public Token(string raw)
+        {
+            Type = TokenType.Identifier;
+            Raw = raw;
+            Literal = null;
+            Line = -1;
+        }
+
         public override string ToString()
         {
             return $"{Type} {Raw} {Literal}";
         }
+
+        public static implicit operator Token(string raw)
+            => new(raw);
     }
 }

@@ -4,6 +4,35 @@ using Ream.Tools;
 
 namespace Ream.Interpreting
 {
+    public class MainInterpret
+    {
+        [ExternalVariable]
+        public static object Time => DateTime.Now.ToString();
+
+        [ExternalFunction]
+        public static void WriteLine(object text)
+        {
+            Console.WriteLine(Interpreter.Stringify(text));
+        }
+
+        [ExternalFunction]
+        public static void Write(object text)
+        {
+            Console.Write(Interpreter.Stringify(text));
+        }
+
+        [ExternalFunction]
+        public static object Read()
+        {
+            return Console.ReadLine();
+        }
+
+        [ExternalFunction]
+        public static void Sleep(object time)
+        {
+            Thread.Sleep(((double)time).ToInt());
+        }
+    }
     public class Interpreter : Expr.Visitor<Object>, Stmt.Visitor<Object>
     {
         public readonly Scope Globals;
@@ -14,20 +43,7 @@ namespace Ream.Interpreting
             Globals = new();
             Scope = Globals;
 
-            Globals.Define("write", new ExternalFunction((i, l) =>
-            {
-                Console.WriteLine(Stringify(l.First()));
-                return null;
-            }, 1));
-            Globals.Define("read", new ExternalFunction((i, l) =>
-            {
-                return Console.ReadLine();
-            }, 0));
-            Globals.Define("sleep", new ExternalFunction((i, l) =>
-            {
-                Thread.Sleep(((double)l.First()).ToInt());
-                return null;
-            }, 1));
+            Globals.Define("Main", new ExternalClass<MainInterpret>(this));
         }
 
         public void Interpret(List<Stmt> statements)
@@ -61,6 +77,7 @@ namespace Ream.Interpreting
             if (obj == null) return false;
             if (obj is bool) return (bool)obj;
             if (obj is double) return (double)obj > 0;
+            if (obj is List<object>) return ((List<object>)obj).Any();
             return true;
         }
         private bool IsEqual(object left, object right)
@@ -82,7 +99,7 @@ namespace Ream.Interpreting
 
             throw new RuntimeError(token, "Operands must be an intergers");
         }
-        private string Stringify(object obj)
+        public static string Stringify(object obj)
         {
             if (obj == null) return "null";
             if (obj is double)
@@ -102,15 +119,17 @@ namespace Ream.Interpreting
 
             return obj.ToString();
         }
-        public object DeclareStmt(Token name, Expr initializer, bool isGlobal)
+        public object DeclareStmt(Token name, Expr initializer, VariableType type)
         {
             object value = null;
-            if (initializer != null)
-            {
-                value = Evaluate(initializer);
-            }
+            VariableType autoType = Scope.AutoDetectType(name, type);
 
-            Scope.Set(name, value, isGlobal);
+            if (initializer != null && !autoType.HasFlag(VariableType.Dynamic))
+                value = Evaluate(initializer);
+            else
+                value = initializer;
+
+            Scope.Set(name, value, type);
             return value;
         }
         public void ExecuteBlock(List<Stmt> statements, Scope scope)
@@ -147,39 +166,33 @@ namespace Ream.Interpreting
             }
             return new();
         }
-        //private object LookupVariable(Token name, Expr.Variable expr)
-        //{
-        //    if (Locals.ContainsKey(expr))
-        //    {
-        //        int dist = Locals[expr];
-        //        return Scope.GetAt(dist, name.Raw);
-        //    }
-        //    else
-        //    {
-        //        return Globals.Get(name);
-        //    }
-        //}
 
         #region VisitExpr
         public object VisitAssignExpr(Expr.Assign expr)
         {
-            object value = Evaluate(expr.value);
-            Scope.Set(expr.name, value);
-            //if (Locals.ContainsKey(expr))
-            //{
-            //    int dist = Locals[expr];
-            //    Scope.SetAt(dist, expr.name, value);
-            //}
-            //else
-            //{
-            //    Globals.Set(expr.name, value);
-            //}
-            return value;
+            //object value = Evaluate(expr.value);
+            //Scope.Set(expr.name, value);
+            //return value;
+            return DeclareStmt(expr.name, expr.value, VariableType.Normal);
         }
         public object VisitVariableExpr(Expr.Variable expr)
         {
-            return Scope.Get(expr.name);
-            //return LookupVariable(expr.name, expr);
+            object obj = Scope.Get(expr.name);
+            if (obj == null)
+                return null;
+
+            VariableData data = Scope.GetData(expr.name);
+
+            if (data.Type.HasFlag(VariableType.Dynamic))
+            {
+                // Evaluate expression now
+                return Evaluate((Expr)obj);
+            }
+            else
+            {
+                // Get already evaluated expression
+                return obj;
+            }
         }
         public object VisitLambdaExpr(Expr.Lambda expr)
         {
@@ -301,6 +314,40 @@ namespace Ream.Interpreting
 
             return Evaluate(expr.right);
         }
+        public object VisitGetExpr(Expr.Get expr)
+        {
+            object obj = Evaluate(expr.obj);
+            if (obj is IClassInstance ci)
+            {
+                return ci.Get(expr.name);
+            }
+
+            throw new RuntimeError(expr.name, "Only instances have fields");
+        }
+        public object VisitSetExpr(Expr.Set expr)
+        {
+            object obj = Evaluate(expr.obj);
+
+            if (obj is not IClassInstance)
+            {
+                throw new RuntimeError(expr.name, "Only instances have fields");
+            }
+
+            IClassInstance inst = obj as IClassInstance;
+
+            VariableType type = inst.AutoDetectType(expr.name);
+
+            object value = type.HasFlag(VariableType.Dynamic)
+                ? expr.value
+                : Evaluate(expr.value);
+
+            inst.Set(expr.name, value, type);
+            return value;
+        }
+        public object VisitThisExpr(Expr.This expr)
+        {
+            return Scope.Get(expr.keyword);
+        }
         #endregion
 
         #region VisitStmt
@@ -322,13 +369,9 @@ namespace Ream.Interpreting
             ExecuteBlock(stmt.statements, new Scope(Scope));
             return null;
         }
-        public object VisitGlobalStmt(Stmt.Global stmt)
+        public object VisitTypedStmt(Stmt.Typed stmt)
         {
-            return DeclareStmt(stmt.name, stmt.initializer, true);
-        }
-        public object VisitLocalStmt(Stmt.Local stmt)
-        {
-            return DeclareStmt(stmt.name, stmt.initializer, false);
+            return DeclareStmt(stmt.name, stmt.initializer, stmt.type);
         }
         public object VisitReturnStmt(Stmt.Return stmt)
         {
@@ -340,7 +383,7 @@ namespace Ream.Interpreting
         public object VisitFunctionStmt(Stmt.Function stmt)
         {
             Function function = new(stmt, Scope);
-            Scope.Set(stmt.name, function);
+            Scope.Set(stmt.name, function, stmt.type);
             return null;
         }
         public object VisitWhileStmt(Stmt.While stmt)
@@ -385,6 +428,23 @@ namespace Ream.Interpreting
         {
             object value = Evaluate(stmt.expression);
             Console.WriteLine(Stringify(value));
+            return null;
+        }
+        public object VisitClassStmt(Stmt.Class stmt)
+        {
+            Scope scope = new();
+            Scope staticScope = new();
+            foreach (Stmt.Function funStmt in stmt.functions)
+            {
+                Function function = new(funStmt, scope);
+                if (funStmt.type.HasFlag(VariableType.Static))
+                    staticScope.Set(funStmt.name, function, funStmt.type);
+                else
+                    scope.Set(funStmt.name, function, funStmt.type);
+            }
+            Class clss = new(stmt.name.Raw, this, scope, staticScope);
+            Scope.Set(stmt.name, clss, VariableType.Global);
+
             return null;
         }
         #endregion
