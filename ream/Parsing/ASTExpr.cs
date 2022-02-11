@@ -11,6 +11,7 @@ namespace Ream.Parsing
          public T VisitAssignExpr(Assign expr);
          public T VisitBinaryExpr(Binary expr);
          public T VisitCallExpr(Call expr);
+         public T VisitIndexerExpr(Indexer expr);
          public T VisitGetExpr(Get expr);
          public T VisitGroupingExpr(Grouping expr);
          public T VisitSequenceExpr(Sequence expr);
@@ -74,6 +75,25 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitCallExpr(this);
+          }
+      }
+
+     public class Indexer : Expr
+      {
+     public readonly Expr callee;
+     public readonly Token paren;
+     public readonly Expr index;
+
+         public Indexer(Expr callee, Token paren, Expr index)
+          {
+             this.callee = callee;
+             this.paren = paren;
+             this.index = index;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitIndexerExpr(this);
           }
       }
 

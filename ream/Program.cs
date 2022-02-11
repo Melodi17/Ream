@@ -28,6 +28,7 @@ namespace Ream
                 "Assign   : Token name, Expr value",
                 "Binary   : Expr left, Token @operator, Expr right",
                 "Call     : Expr callee, Token paren, List<Expr> arguments",
+                "Indexer  : Expr callee, Token paren, Expr index",
                 "Get      : Expr obj, Token name",
                 "Grouping : Expr expression",
                 "Sequence : List<Expr> items",

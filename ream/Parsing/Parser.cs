@@ -154,13 +154,37 @@ namespace Ream.Parsing
         }
         private Expr ExprCall()
         {
-            Expr expr = ExprPrimary();
+            Expr expr = ExprIndexer();
 
             while (true)
             {
                 if (Match(TokenType.Left_Parenthesis))
                 {
                     expr = ExprFinishCall(expr);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return expr;
+        }
+        private Expr ExprIndexer()
+        {
+            Expr expr = ExprPrimary();
+
+            while (true)
+            {
+                if (Match(TokenType.Left_Square))
+                {
+                    Expr index = Expression();
+
+                    Token paren = Consume(TokenType.Right_Square, "Expected ']' after index");
+                    InsistEnd();
+
+                    expr = new Expr.Indexer(expr, paren, index);
+
                 }
                 else if (Match(TokenType.Period))
                 {

@@ -154,7 +154,7 @@ namespace Ream.Interpreting
             object obj = Evaluate(expression);
             if (obj is double d)
             {
-                return Enumerable.Range(0, d.ToInt()).Select(x => (object)x).ToList();
+                return Enumerable.Range(0, d.ToInt()).Select(x => (object)Convert.ToDouble(x)).ToList();
             }
             if (obj is List<object>)
             {
@@ -297,6 +297,18 @@ namespace Ream.Interpreting
             }
 
             return function.Call(this, args);
+        }
+        public object VisitIndexerExpr(Expr.Indexer expr)
+        {
+            List<object> iterator = GetIterator(expr.callee);
+            int index = ((double)Evaluate(expr.index)).ToInt();
+            if (index < 0 || index >= iterator.Count)
+            {
+                //throw new RuntimeError(expr.paren, $"Index {index} was out of bounds (below 0 or above/equal to {iterator.Count})");
+                return null;
+            }
+
+            return iterator[index];
         }
         public object VisitSequenceExpr(Expr.Sequence expr)
         {
