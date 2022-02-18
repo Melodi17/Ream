@@ -44,6 +44,11 @@ namespace Ream.Interpreting
             Scope = Globals;
 
             Globals.Define("Main", new ExternalClass<MainInterpret>(this));
+
+            Globals.Define("write", new ExternalFunction((i, j) =>
+            {
+
+            }, 1));
         }
 
         public void Interpret(List<Stmt> statements)
