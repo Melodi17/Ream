@@ -10,7 +10,6 @@
 
 ## To-do
 
-- Implement import
 - Write get started instructions
 - Rewrite documentation
 - Add casting
@@ -38,3 +37,4 @@
 - Patched global scope inaccessible from classes
 - Patched multiple class overriding previous instance
 - Moved 3 types to Ream.SDK
+- Added import statement
