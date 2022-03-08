@@ -17,6 +17,7 @@ namespace Ream.Parsing
          public T VisitReturnStmt(Return stmt);
          public T VisitTypedStmt(Typed stmt);
          public T VisitWhileStmt(While stmt);
+         public T VisitImportStmt(Import stmt);
          public T VisitForStmt(For stmt);
      }
      public class Block : Stmt
@@ -171,6 +172,21 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitWhileStmt(this);
+          }
+      }
+
+     public class Import : Stmt
+      {
+     public readonly Token name;
+
+         public Import(Token name)
+          {
+             this.name = name;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitImportStmt(this);
           }
       }
 

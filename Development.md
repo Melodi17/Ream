@@ -34,3 +34,5 @@
 - Added static initializers
 - Added C# native class and function support into language
 - Added implicit method attribute getter
+- Patched newline requirement before { when constructing a function
+- Patched global scope inaccessible from classes

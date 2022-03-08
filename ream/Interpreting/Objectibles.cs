@@ -80,17 +80,17 @@ namespace Ream.Interpreting
     public class ClassInstance : IClassInstance
     {
         public Class Class;
-        private Scope Scope;
+        private Scope scope;
 
         public ClassInstance(Class clss, Scope scope)
         {
             Class = clss;
-            Scope = scope;
+            this.scope = new(scope);
         }
 
         public object Get(Token key)
         {
-            object resp = Scope.Get(key);
+            object resp = scope.Get(key);
             if (resp is Function c)
                 return c.Bind(this);
 
@@ -98,10 +98,10 @@ namespace Ream.Interpreting
         }
 
         public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal)
-            => Scope.AutoDetectType(key, manualType);
+            => scope.AutoDetectType(key, manualType);
 
         public void Set(Token key, object value, VariableType type = VariableType.Normal)
-        { Scope.Set(key, value, type); }
+        { scope.Set(key, value, type); }
 
         public override string ToString()
         {

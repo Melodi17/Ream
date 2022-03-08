@@ -52,6 +52,7 @@ namespace Ream
                 "Return     : Token keyword, Expr value",
                 "Typed      : Token name, Expr initializer, VariableType type",
                 "While      : Expr condition, Stmt body",
+                "Import     : Token name",
                 "For        : Token name, Expr iterator, Stmt body",
             }.ToList());
 

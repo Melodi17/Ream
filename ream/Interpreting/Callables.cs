@@ -77,8 +77,9 @@ namespace Ream.Interpreting
 
         public Function Bind(IClassInstance instance)
         {
+            // Clone it
             Scope scope = new(ParentScope);
-            scope.Set("this", instance);
+            scope.Set("this", instance, VariableType.Local);
             return new Function(Declaration, scope);
         }
 

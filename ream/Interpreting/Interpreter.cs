@@ -12,13 +12,13 @@ namespace Ream.Interpreting
         [ExternalFunction]
         public static void WriteLine(object text)
         {
-            Console.WriteLine(Interpreter.Stringify(text));
+            Console.WriteLine(Interpreter.Stringify(text ?? ""));
         }
 
         [ExternalFunction]
         public static void Write(object text)
         {
-            Console.Write(Interpreter.Stringify(text));
+            Console.Write(Interpreter.Stringify(text ?? ""));
         }
 
         [ExternalFunction]
@@ -41,13 +41,14 @@ namespace Ream.Interpreting
         public Interpreter()
         {
             Globals = new();
-            Scope = Globals;
+            Scope = new(Globals);
 
             Globals.Define("Main", new ExternalClass<MainInterpret>(this));
 
-            Globals.Define("write", new ExternalFunction((i, j) =>
+            Globals.Define("print", new ExternalFunction((i, j) =>
             {
-
+                Console.WriteLine(j.First());
+                return null;
             }, 1));
         }
 
@@ -68,10 +69,6 @@ namespace Ream.Interpreting
         public void Execute(Stmt stmt)
         {
             stmt.Accept(this);
-        }
-        public void Resolve(Expr expr, int depth)
-        {
-            //Locals[expr] = depth;
         }
         private object Evaluate(Expr expr)
         {
@@ -296,10 +293,8 @@ namespace Ream.Interpreting
             ICallable function = (ICallable)callee;
 
             int count = function.ArgumentCount();
-            if (args.Count != count)
-            {
-                throw new RuntimeError(expr.paren, $"Expected {count} parameters, got {args.Count}");
-            }
+            while (args.Count != count)
+                args.Add(null);
 
             return function.Call(this, args);
         }
@@ -343,6 +338,7 @@ namespace Ream.Interpreting
         }
         public object VisitSetExpr(Expr.Set expr)
         {
+            // something overwriting original object
             object obj = Evaluate(expr.obj);
 
             if (obj is not IClassInstance)
@@ -449,20 +445,30 @@ namespace Ream.Interpreting
         }
         public object VisitClassStmt(Stmt.Class stmt)
         {
-            Scope scope = new();
-            Scope staticScope = new();
+            Scope scope = new(Globals);
+            Scope staticScope = new(Globals);
             foreach (Stmt.Function funStmt in stmt.functions)
             {
-                Function function = new(funStmt, scope);
+                Function function;
                 if (funStmt.type.HasFlag(VariableType.Static))
+                {
+                    function = new(funStmt, staticScope);
                     staticScope.Set(funStmt.name, function, funStmt.type);
+                }
                 else
+                {
+                    function = new(funStmt, scope);
                     scope.Set(funStmt.name, function, funStmt.type);
+                }
             }
             Class clss = new(stmt.name.Raw, this, scope, staticScope);
             Scope.Set(stmt.name, clss, VariableType.Global);
 
             return null;
+        }
+        public object VisitImportStmt(Stmt.Import stmt)
+        {
+            throw new NotImplementedException();
         }
         #endregion
     }
