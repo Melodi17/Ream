@@ -1,5 +1,7 @@
-﻿using Ream.Lexing;
+﻿using System.Reflection;
+using Ream.Lexing;
 using Ream.Parsing;
+using Ream.SDK;
 using Ream.Tools;
 
 namespace Ream.Interpreting
@@ -293,8 +295,9 @@ namespace Ream.Interpreting
             ICallable function = (ICallable)callee;
 
             int count = function.ArgumentCount();
-            while (args.Count != count)
-                args.Add(null);
+            if (count != -1)
+                while (args.Count != count)
+                    args.Add(null);
 
             return function.Call(this, args);
         }
@@ -468,7 +471,21 @@ namespace Ream.Interpreting
         }
         public object VisitImportStmt(Stmt.Import stmt)
         {
-            throw new NotImplementedException();
+            string path = stmt.name.Raw + ".dll";
+            string libDataPath = Path.Join(Program.LibDataPath, path);
+            if (File.Exists(path))
+            {
+
+            }
+            else if (File.Exists(libDataPath))
+            {
+                
+            }
+            return null;
+        }
+        public void LoadExternalLibrary(string libPath)
+        {
+            Assembly.LoadFile(libPath);
         }
         #endregion
     }

@@ -16,7 +16,7 @@
 - Add casting
 - Implement indexers
 
-## Changelog
+## Change-log
 
 - Rewrote all the code from ground up
 - Added variables and operators
@@ -36,3 +36,5 @@
 - Added implicit method attribute getter
 - Patched newline requirement before { when constructing a function
 - Patched global scope inaccessible from classes
+- Patched multiple class overriding previous instance
+- Moved 3 types to Ream.SDK

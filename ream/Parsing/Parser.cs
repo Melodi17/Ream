@@ -1,5 +1,6 @@
 ﻿using Ream.Interpreting;
 using Ream.Lexing;
+using Ream.SDK;
 
 namespace Ream.Parsing
 {
@@ -413,13 +414,13 @@ namespace Ream.Parsing
             InsistEnd();
             return statements;
         }
-        private Stmt FunctionDeclaration(VariableType type, bool suppressName = false)
+        private Stmt FunctionDeclaration(VariableType type, string defaultName = "")
         {
             Token name;
-            if (!suppressName)
+            if (defaultName.Length == 0)
                 name = Consume(TokenType.Identifier, "Expected function name");
             else
-                name = new Token(TokenType.Identifier, "", null, 0);
+                name = new Token(TokenType.Identifier, defaultName, null, 0);
             List<Token> parameters = new();
             if (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace)))
             {
@@ -483,7 +484,7 @@ namespace Ream.Parsing
                     {
                         dat |= Advance().Type.ToVariableType();
                     }
-                    functions.Add(FunctionDeclaration(dat, dat.HasFlag(VariableType.Initializer)) as Stmt.Function);
+                    functions.Add(FunctionDeclaration(dat, dat.HasFlag(VariableType.Initializer) ? "initializer" : "") as Stmt.Function);
                 }
                 else
                 {

@@ -10,10 +10,18 @@ namespace Ream
         public static readonly Interpreter Interpreter = new();
         public static bool ErrorOccured = false;
         public static bool RuntimeErrorOccured = false;
+        public static string DataPath;
+        public static string LibDataPath;
         public static void Main(string[] args)
         {
-            if (args.Any(x => x == "UPDATE_AST"))
-                UpdateAST();   
+            DataPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Ream");
+            LibDataPath = Path.Join(DataPath, "Libraries");
+
+            Directory.CreateDirectory(DataPath);
+            Directory.CreateDirectory(LibDataPath);
+
+            //if (args.Any(x => x == "UPDATE_AST"))
+            //    UpdateAST();
 
             if (args.Any())
                 RunFile(args.First());

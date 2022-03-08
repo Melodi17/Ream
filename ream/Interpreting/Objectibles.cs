@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using Ream.Lexing;
+using Ream.SDK;
 
 namespace Ream.Interpreting
 {
@@ -106,40 +107,6 @@ namespace Ream.Interpreting
         public override string ToString()
         {
             return $"{Class.Name} instance";
-        }
-    }
-    public class ExternalVariableAttribute : Attribute
-    {
-        public string Name;
-        public VariableType Type;
-        public ExternalVariableAttribute(string name = "", VariableType type = VariableType.Normal)
-        {
-            Name = name;
-            Type = type;
-        }
-        public ExternalVariableAttribute Apply(PropertyInfo info)
-        {
-            string name = Name;
-            VariableType type = Type;
-            if (Name == "")
-                name = info.Name;
-
-            if (info.IsStatic() && !Type.HasFlag(VariableType.Static))
-                type |= VariableType.Static;
-
-            return new(name, type);
-        }
-        public ExternalVariableAttribute Apply(FieldInfo info)
-        {
-            string name = Name;
-            VariableType type = Type;
-            if (Name == "")
-                name = info.Name;
-
-            if (info.IsStatic && !Type.HasFlag(VariableType.Static))
-                type |= VariableType.Static;
-
-            return new(name, type);
         }
     }
     public class ExternalClass<T> : IClass, IClassInstance, ICallable
@@ -361,9 +328,33 @@ namespace Ream.Interpreting
         }
     }
 
-    public static class PropertyInfoExtensions
+    public static class Extensions
     {
         public static bool IsStatic(this PropertyInfo source, bool nonPublic = false)
             => source.GetAccessors(nonPublic).Any(x => x.IsStatic);
+        public static ExternalVariableAttribute Apply(this ExternalVariableAttribute attrib, PropertyInfo info)
+        {
+            string name = attrib.Name;
+            VariableType type = attrib.Type;
+            if (attrib.Name == "")
+                name = info.Name;
+
+            if (info.IsStatic() && !attrib.Type.HasFlag(VariableType.Static))
+                type |= VariableType.Static;
+
+            return new(name, type);
+        }
+        public static ExternalVariableAttribute Apply(this ExternalVariableAttribute attrib, FieldInfo info)
+        {
+            string name = attrib.Name;
+            VariableType type = attrib.Type;
+            if (attrib.Name == "")
+                name = info.Name;
+
+            if (info.IsStatic && !attrib.Type.HasFlag(VariableType.Static))
+                type |= VariableType.Static;
+
+            return new(name, type);
+        }
     }
 }

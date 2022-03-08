@@ -1,20 +1,9 @@
 ﻿using System.Reflection;
 using Ream.Parsing;
+using Ream.SDK;
 
 namespace Ream.Interpreting
 {
-    public class ExternalFunctionAttribute : Attribute
-    {
-        public int ArgumentCount;
-        public string Name;
-        public VariableType Type;
-        public ExternalFunctionAttribute(string name = "", int argumentCount = -1, VariableType type = VariableType.Normal)
-        {
-            ArgumentCount = argumentCount;
-            Type = type;
-            Name = name;
-        }
-    }
     public class ExternalFunction : ICallable
     {
         public Func<object, List<object>, object> _func;
