@@ -35,6 +35,23 @@ namespace Ream.Interpreting
             Thread.Sleep(((double)time).ToInt());
         }
     }
+    public class CastInterpret
+    {
+        [ExternalFunction]
+        public static object String(object obj)
+        {
+            return Interpreter.Stringify(obj);
+        }
+
+        [ExternalFunction]
+        public static object Number(object obj)
+        {
+            if (double.TryParse(Interpreter.Stringify(obj), out double res))
+                return res;
+
+            return null;            
+        }
+    }
     public class Interpreter : Expr.Visitor<Object>, Stmt.Visitor<Object>
     {
         public readonly Scope Globals;
@@ -46,6 +63,7 @@ namespace Ream.Interpreting
             Scope = new(Globals);
 
             Globals.Define("Main", new ExternalClass(typeof(MainInterpret), this));
+            Globals.Define("Cast", new ExternalClass(typeof(CastInterpret), this));
 
             Globals.Define("print", new ExternalFunction((i, j) =>
             {

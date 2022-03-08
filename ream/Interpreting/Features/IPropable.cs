@@ -33,6 +33,7 @@ namespace Ream.Interpreting
                 "Ends" => new ExternalFunction((i, j) => Value.EndsWith(j[0].ToString()), 1),
                 "Lower" => new ExternalFunction((i, j) => Value.ToLower(), 0),
                 "Upper" => new ExternalFunction((i, j) => Value.ToUpper(), 0),
+                "Split" => new ExternalFunction((i, j) => Value.Split(j[0].ToString()).ToList<object>(), 1),
                 _ => null,
             };
         }
@@ -60,6 +61,7 @@ namespace Ream.Interpreting
                 "Remove" => new ExternalFunction((i, j) => Value.Remove(j[0]), 1),
                 "Delete" => new ExternalFunction((i, j) => { Value.RemoveAt(((double)j[0]).ToInt()); return null; }, 1),
                 "Index" => new ExternalFunction((i, j) => (double)Value.IndexOf(((double)j[0]).ToInt()), 1),
+                "Join" => new ExternalFunction((i, j) => string.Join(j[0].ToString(), Value), 1),
                 _ => null,
             };
         }
