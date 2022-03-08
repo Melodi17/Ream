@@ -45,7 +45,7 @@ namespace Ream.Interpreting
             Globals = new();
             Scope = new(Globals);
 
-            Globals.Define("Main", new ExternalClass<MainInterpret>(this));
+            Globals.Define("Main", new ExternalClass(typeof(MainInterpret), this));
 
             Globals.Define("print", new ExternalFunction((i, j) =>
             {
@@ -475,17 +475,23 @@ namespace Ream.Interpreting
             string libDataPath = Path.Join(Program.LibDataPath, path);
             if (File.Exists(path))
             {
-
+                Assembly asm = Assembly.LoadFrom(path);
+                LoadAssemblyLibrary(asm);
             }
             else if (File.Exists(libDataPath))
             {
-                
+                Assembly asm = Assembly.LoadFrom(libDataPath);
+                LoadAssemblyLibrary(asm);
             }
             return null;
         }
-        public void LoadExternalLibrary(string libPath)
+        public void LoadAssemblyLibrary(Assembly asm)
         {
-            Assembly.LoadFile(libPath);
+            foreach (Type type in asm.GetTypes()
+                .Where(x => x.GetCustomAttribute<ExternalClassAttribute>() != null))
+            {
+                Globals.Define(type.Name, new ExternalClass(type, this), VariableType.Global);
+            }
         }
         #endregion
     }

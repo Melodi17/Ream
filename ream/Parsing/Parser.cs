@@ -383,7 +383,7 @@ namespace Ream.Parsing
             if (Match(TokenType.While)) return WhileStatement();
             if (Match(TokenType.For)) return ForStatement();
             if (Match(TokenType.Write)) return PrintStatement();
-            if (Match(TokenType.Import)) return PrintStatement();
+            if (Match(TokenType.Import)) return ImportStatement();
             if (Match(TokenType.Return)) return ReturnStatement();
             if (Match(TokenType.Left_Brace)) return new Stmt.Block(Block());
 
@@ -508,6 +508,12 @@ namespace Ream.Parsing
             Expr value = Expression();
             InsistEnd();
             return new Stmt.Write(value);
+        }
+        private Stmt ImportStatement()
+        {
+            Token name = Consume(TokenType.Identifier, "Expected module name");
+            InsistEnd();
+            return new Stmt.Import(name);
         }
         private Stmt IfStatement()
         {

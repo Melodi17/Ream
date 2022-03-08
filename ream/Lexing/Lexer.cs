@@ -30,6 +30,7 @@
             { "true", TokenType.True },
             { "false", TokenType.False },
             { "write", TokenType.Write },
+            { "import", TokenType.Import },
         };
 
         public Lexer(string source)

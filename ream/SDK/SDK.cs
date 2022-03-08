@@ -1,4 +1,7 @@
-﻿namespace Ream.SDK
+﻿using System;
+using System.Reflection;
+
+namespace Ream.SDK
 {
     public class ExternalVariableAttribute : Attribute
     {
@@ -22,6 +25,11 @@
             Type = type;
             Name = name;
         }
+    }
+
+    public class ExternalClassAttribute : Attribute
+    {
+
     }
 
     [Flags]

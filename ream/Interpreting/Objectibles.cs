@@ -109,14 +109,14 @@ namespace Ream.Interpreting
             return $"{Class.Name} instance";
         }
     }
-    public class ExternalClass<T> : IClass, IClassInstance, ICallable
+    public class ExternalClass : IClass, IClassInstance, ICallable
     {
         public Type Type;
         private Scope scope;
         private Scope staticScope;
         private readonly Func<KeyValuePair<string, object>, bool> GetNonStaticInitializer;
         private readonly Func<KeyValuePair<string, object>, bool> GetStaticInitializer;
-        public ExternalClass(Interpreter interpreter)
+        public ExternalClass(Type type, Interpreter interpreter)
         {
             scope = new();
             staticScope = new();
@@ -132,7 +132,7 @@ namespace Ream.Interpreting
                     && type.HasFlag(VariableType.Static);
             };
 
-            Type = typeof(T);
+            Type = type;
             ExternalFunction[] functions = Type.GetMethods()
                 .Where(x => x.GetCustomAttribute<ExternalFunctionAttribute>() != null)
                 .Select(x => new ExternalFunction(x)).ToArray();
@@ -167,7 +167,7 @@ namespace Ream.Interpreting
 
         public object Call(Interpreter interpreter, List<object> arguments)
         {
-            ExternalClassInstance<T> inst = new(this, scope);
+            ExternalClassInstance inst = new(this, scope);
             var all = scope.All();
 
             if (all.Any(GetNonStaticInitializer))
@@ -243,12 +243,12 @@ namespace Ream.Interpreting
         }
     }
 
-    public class ExternalClassInstance<T> : IClassInstance
+    public class ExternalClassInstance : IClassInstance
     {
-        public ExternalClass<T> Class;
+        public ExternalClass Class;
         public object Instance;
         private Scope Scope;
-        public ExternalClassInstance(ExternalClass<T> clss, Scope scope)
+        public ExternalClassInstance(ExternalClass clss, Scope scope)
         {
             Class = clss;
             Scope = scope;
