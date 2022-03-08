@@ -29,7 +29,7 @@
             { "this", TokenType.This },
             { "true", TokenType.True },
             { "false", TokenType.False },
-            { "write", TokenType.Write },
+            { "print", TokenType.Print },
             { "import", TokenType.Import },
         };
 

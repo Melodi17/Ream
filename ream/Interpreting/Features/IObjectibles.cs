@@ -5,13 +5,7 @@ using Ream.SDK;
 namespace Ream.Interpreting
 {
     public interface IClass : ICallable { }
-    public interface IClassInstance
-    {
-        public object Get(Token key);
-        public void Set(Token key, object value, VariableType type = VariableType.Normal);
-        public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal);
-    }
-    public class Class : IClass, IClassInstance, ICallable
+    public class Class : IClass, IPropable, ICallable
     {
         public readonly string Name;
         public readonly Scope Scope;
@@ -78,7 +72,7 @@ namespace Ream.Interpreting
         public override string ToString()
             => Name;
     }
-    public class ClassInstance : IClassInstance
+    public class ClassInstance : IPropable
     {
         public Class Class;
         private Scope scope;
@@ -109,7 +103,7 @@ namespace Ream.Interpreting
             return $"{Class.Name} instance";
         }
     }
-    public class ExternalClass : IClass, IClassInstance, ICallable
+    public class ExternalClass : IClass, IPropable, ICallable
     {
         public Type Type;
         private Scope scope;
@@ -242,8 +236,7 @@ namespace Ream.Interpreting
             staticScope.Set(key, value, vt);
         }
     }
-
-    public class ExternalClassInstance : IClassInstance
+    public class ExternalClassInstance : IPropable
     {
         public ExternalClass Class;
         public object Instance;
@@ -327,7 +320,6 @@ namespace Ream.Interpreting
             Scope.Set(key, value, type);
         }
     }
-
     public static class Extensions
     {
         public static bool IsStatic(this PropertyInfo source, bool nonPublic = false)

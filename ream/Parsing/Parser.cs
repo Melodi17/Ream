@@ -382,7 +382,7 @@ namespace Ream.Parsing
             if (Match(TokenType.If)) return IfStatement();
             if (Match(TokenType.While)) return WhileStatement();
             if (Match(TokenType.For)) return ForStatement();
-            if (Match(TokenType.Write)) return PrintStatement();
+            if (Match(TokenType.Print)) return PrintStatement();
             if (Match(TokenType.Import)) return ImportStatement();
             if (Match(TokenType.Return)) return ReturnStatement();
             if (Match(TokenType.Left_Brace)) return new Stmt.Block(Block());
@@ -484,7 +484,8 @@ namespace Ream.Parsing
                     {
                         dat |= Advance().Type.ToVariableType();
                     }
-                    functions.Add(FunctionDeclaration(dat, dat.HasFlag(VariableType.Initializer) ? "initializer" : "") as Stmt.Function);
+                    functions.Add(FunctionDeclaration(dat, dat.HasFlag(VariableType.Initializer) ?
+                        dat.HasFlag(VariableType.Static) ? "StaticInitializer" : "Initializer" : "") as Stmt.Function);
                 }
                 else
                 {
@@ -507,7 +508,7 @@ namespace Ream.Parsing
         {
             Expr value = Expression();
             InsistEnd();
-            return new Stmt.Write(value);
+            return new Stmt.Print(value);
         }
         private Stmt ImportStatement()
         {

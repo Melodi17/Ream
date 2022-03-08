@@ -14,7 +14,7 @@ namespace Ream.Parsing
          public T VisitExpressionStmt(Expression stmt);
          public T VisitFunctionStmt(Function stmt);
          public T VisitIfStmt(If stmt);
-         public T VisitWriteStmt(Write stmt);
+         public T VisitPrintStmt(Print stmt);
          public T VisitReturnStmt(Return stmt);
          public T VisitTypedStmt(Typed stmt);
          public T VisitWhileStmt(While stmt);
@@ -108,18 +108,18 @@ namespace Ream.Parsing
           }
       }
 
-     public class Write : Stmt
+     public class Print : Stmt
       {
      public readonly Expr expression;
 
-         public Write(Expr expression)
+         public Print(Expr expression)
           {
              this.expression = expression;
           }
 
           public override T Accept<T>(Visitor<T> visitor)
           {
-             return visitor.VisitWriteStmt(this);
+             return visitor.VisitPrintStmt(this);
           }
       }
 

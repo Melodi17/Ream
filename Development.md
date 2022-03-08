@@ -13,7 +13,6 @@
 - Write get started instructions
 - Rewrite documentation
 - Add casting
-- Implement indexers
 
 ## Change-log
 
@@ -38,3 +37,5 @@
 - Patched multiple class overriding previous instance
 - Moved 3 types to Ream.SDK
 - Added import statement
+- Added indexers
+- Added properties to basic types

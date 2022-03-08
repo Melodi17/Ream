@@ -4,6 +4,12 @@ using Ream.SDK;
 
 namespace Ream.Interpreting
 {
+    public interface ICallable
+    {
+        public int ArgumentCount();
+        public object Call(Interpreter interpreter, List<object> arguments);
+    }
+
     public class ExternalFunction : ICallable
     {
         public Func<object, List<object>, object> _func;
@@ -64,7 +70,7 @@ namespace Ream.Interpreting
             ParentScope = scope;
         }
 
-        public Function Bind(IClassInstance instance)
+        public Function Bind(IPropable instance)
         {
             // Clone it
             Scope scope = new(ParentScope);

@@ -153,22 +153,49 @@ namespace Ream.Interpreting
                 this.Scope = previous;
             }
         }
-        public List<object> GetIterator(Expr expression)
+        public List<object> GetIterator(Token tok, Expr expression)
         {
             object obj = Evaluate(expression);
-            if (obj is double d)
+            if (obj is IIterable i)
+            {
+                return i.GetIterator();
+            }
+            else if (obj is double d)
             {
                 return Enumerable.Range(0, d.ToInt()).Select(x => (object)Convert.ToDouble(x)).ToList();
             }
-            if (obj is List<object>)
+            else if (obj is List<object> l)
             {
-                return (List<object>)obj;
+                return l;
             }
-            if (obj is string s)
+            else if (obj is string s)
             {
                 return s.ToCharArray().Select(x => (object)x.ToString()).ToList();
             }
-            return new();
+            else
+            {
+                throw new RuntimeError(tok, "Object was not Iterable");
+            }
+        }
+        public IPropable GetPropable(Token tok, Expr expression)
+        {
+            object obj = Evaluate(expression);
+            if (obj is IPropable p)
+            {
+                return p;
+            }
+            else if (obj is List<object> l)
+            {
+                return new ListPropMap(l);
+            }
+            else if (obj is string s)
+            {
+                return new StringPropMap(s);
+            }
+            else
+            {
+                throw new RuntimeError(tok, "Object was not Propable");
+            }
         }
 
         #region VisitExpr
@@ -288,7 +315,7 @@ namespace Ream.Interpreting
 
             if (callee is not ICallable)
             {
-                throw new RuntimeError(expr.paren, "Only functions, lambdas and classes can be called");
+                throw new RuntimeError(expr.paren, "Object was not Callable");
             }
 
             List<object> args = expr.arguments.Select(x => Evaluate(x)).ToList();
@@ -303,7 +330,7 @@ namespace Ream.Interpreting
         }
         public object VisitIndexerExpr(Expr.Indexer expr)
         {
-            List<object> iterator = GetIterator(expr.callee);
+            List<object> iterator = GetIterator(expr.paren, expr.callee);
             int index = ((double)Evaluate(expr.index)).ToInt();
             if (index < 0 || index >= iterator.Count)
             {
@@ -331,33 +358,19 @@ namespace Ream.Interpreting
         }
         public object VisitGetExpr(Expr.Get expr)
         {
-            object obj = Evaluate(expr.obj);
-            if (obj is IClassInstance ci)
-            {
-                return ci.Get(expr.name);
-            }
-
-            throw new RuntimeError(expr.name, "Only instances have fields");
+            IPropable prop = GetPropable(expr.name, expr.obj);
+            return prop.Get(expr.name);
         }
         public object VisitSetExpr(Expr.Set expr)
         {
-            // something overwriting original object
-            object obj = Evaluate(expr.obj);
+            IPropable prop = GetPropable(expr.name, expr.obj);
 
-            if (obj is not IClassInstance)
-            {
-                throw new RuntimeError(expr.name, "Only instances have fields");
-            }
-
-            IClassInstance inst = obj as IClassInstance;
-
-            VariableType type = inst.AutoDetectType(expr.name);
-
+            VariableType type = prop.AutoDetectType(expr.name);
             object value = type.HasFlag(VariableType.Dynamic)
                 ? expr.value
                 : Evaluate(expr.value);
 
-            inst.Set(expr.name, value, type);
+            prop.Set(expr.name, value, type);
             return value;
         }
         public object VisitThisExpr(Expr.This expr)
@@ -418,7 +431,7 @@ namespace Ream.Interpreting
                 try
                 {
                     this.Scope = new Scope(this.Scope);
-                    foreach (object item in GetIterator(stmt.iterator))
+                    foreach (object item in GetIterator(stmt.name, stmt.iterator))
                     {
                         Scope.Set(stmt.name, item);
                         Execute(stmt.body);
@@ -430,7 +443,7 @@ namespace Ream.Interpreting
                 }
             }
             else
-                foreach (object item in GetIterator(stmt.iterator))
+                foreach (object item in GetIterator(stmt.name, stmt.iterator))
                     Execute(stmt.body);
 
             return null;
@@ -440,7 +453,7 @@ namespace Ream.Interpreting
             Evaluate(stmt.expression);
             return null;
         }
-        public object VisitWriteStmt(Stmt.Write stmt)
+        public object VisitPrintStmt(Stmt.Print stmt)
         {
             object value = Evaluate(stmt.expression);
             Console.WriteLine(Stringify(value));
