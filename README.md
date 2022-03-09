@@ -5,13 +5,13 @@ The programming language that uses common sense to prevent you from typing more 
 
 Check how to contribute and check change log [here](Development.md)
 
+You can join the official discord [here](https://discord.gg/ExAfTcf8Nt)
+
 ## Examples
 Hello world sample
 ```ream
 Main.WriteLine('Hello World!')
 ```
-
-
 
 ## Syntax
 
@@ -35,6 +35,26 @@ Wait for 5 seconds before continuing
 
 ```ream
 Main.Sleep(5)
+```
+
+Convert a string to a number
+
+```ream
+myStr = '5'
+myInt = Cast.Number(myStr)
+```
+
+Convert a number to a string
+
+```ream
+myInt = 5
+myStr = Cast.String(myInt)
+```
+
+Get the length of a string
+
+```ream
+myStr.Length
 ```
 
 ### Types
@@ -90,7 +110,7 @@ You can also use a anonymous function (a lambda) these can also support return v
 ```ream
 x = lambda name
 {
-	Main.Write('Hello ' + name)
+	Main.WriteLine('Hello ' + name)
 }
 
 x('Joe')
@@ -110,9 +130,9 @@ class Lunch
 Create a constructor in a class (can have parameters)
 
 ```ream
-initializer Init
+initializer
 {
-	Main.Write('You created a instance of Lunch!')
+	Main.WriteLine('You created a instance of Lunch!')
 }
 ```
 
@@ -121,16 +141,16 @@ Create a function in a class (can have parameters)
 ```ream
 myFunction
 {
-	Main.Write('You called myFunction in Lunch!')
+	Main.WriteLine('You called myFunction in Lunch!')
 }
 ```
 
 Create static constructor of a class
 
 ```ream
-static initializer StaticInit
+static initializer
 {
-	Main.Write('You created a instance of Lunch!')
+	Main.WriteLine('You created a instance of Lunch!')
 }
 ```
 
@@ -273,8 +293,6 @@ a = 3
 write(x) // Returns 5
 ```
 
-
-
 ### Statements
 
 If statement
@@ -295,8 +313,6 @@ else
 	// Code here...
 }
 ```
-
-
 
 ### Loops
 
@@ -325,5 +341,15 @@ for i : 10
 {
 	Main.Write(i)
 }
+```
+
+### Imports
+
+Importing is a very useful part of the language, it allows you to load libraries from external sources, these are dll files, you can install them by downloading the .dll file and placing it in the project directory or install it globally by placing it in `%appdata%\Ream\Libraries`
+
+Import it with the following, don't add the .dll on the end as it is automatically added.
+
+```ream
+import <mylib>
 ```
 
