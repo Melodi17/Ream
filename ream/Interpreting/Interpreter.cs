@@ -516,6 +516,12 @@ namespace Ream.Interpreting
             }
             return null;
         }
+        public object VisitEvaluateStmt(Stmt.Evaluate stmt)
+        {
+            object obj = Evaluate(stmt.value);
+            Program.Run(Stringify(obj));
+            return null;
+        }
         public void LoadAssemblyLibrary(Assembly asm)
         {
             foreach (Type type in asm.GetTypes()

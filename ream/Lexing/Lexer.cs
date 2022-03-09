@@ -31,6 +31,7 @@
             { "false", TokenType.False },
             { "print", TokenType.Print },
             { "import", TokenType.Import },
+            { "evaluate", TokenType.Evaluate },
         };
 
         public Lexer(string source)
@@ -152,11 +153,45 @@
         }
         private void HandleString(char st)
         {
-            while (Peek() != st && !AtEnd)
+            string text = "";
+            bool escaped = false;
+            while (!AtEnd)
             {
-                if (Peek() == '\n') line++;
+                char ch = Peek();
+                if (ch == '\n') line++;
+                if (ch == st && !escaped) break;
+                if (escaped)
+                {
+                    switch (ch)
+                    {
+                        case 'a': ch = '\a'; break;
+                        case 'b': ch = '\b'; break;
+                        case 'f': ch = '\f'; break;
+                        case 'n': ch = '\n'; break;
+                        case 'r': ch = '\r'; break;
+                        case 't': ch = '\t'; break;
+                        case 'v': ch = '\v'; break;
+                        case '0': ch = '\0'; break;
 
+                        case '\\':
+                        case '\'':
+                        case '\"': 
+                            break;
+
+                        default:
+                            Program.Error(line, "Unknown escape character"); 
+                            break;
+                    }
+                }
+                if (escaped) escaped = false;
                 Advance();
+                if (ch == '\\' && !escaped)
+                {
+                    escaped = true;
+                    continue;
+                }
+
+                text += ch;
             }
 
             if (AtEnd)
@@ -167,8 +202,8 @@
 
             Advance();
 
-            string value = Source.Between(start + 1, current - 1);
-            AddToken(TokenType.String, value);
+            //Source.Between(start + 1, current - 1);
+            AddToken(TokenType.String, text);
         }
         private void HandleInterger()
         {

@@ -20,7 +20,7 @@
         If, Else, Elif, For, While, Function, Global,
         Return, Null, Class, This, Print, True, False,
         Local, Lambda, Dynamic, Final, Initializer, Static,
-        Import,
+        Import, Evaluate,
 
         Newline, End
     }

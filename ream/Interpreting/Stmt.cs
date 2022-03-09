@@ -20,6 +20,7 @@ namespace Ream.Parsing
          public T VisitWhileStmt(While stmt);
          public T VisitImportStmt(Import stmt);
          public T VisitForStmt(For stmt);
+         public T VisitEvaluateStmt(Evaluate stmt);
      }
      public class Block : Stmt
       {
@@ -207,6 +208,21 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitForStmt(this);
+          }
+      }
+
+     public class Evaluate : Stmt
+      {
+     public readonly Expr value;
+
+         public Evaluate(Expr value)
+          {
+             this.value = value;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitEvaluateStmt(this);
           }
       }
 

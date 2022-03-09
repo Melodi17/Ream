@@ -20,8 +20,8 @@ namespace Ream
             Directory.CreateDirectory(DataPath);
             Directory.CreateDirectory(LibDataPath);
 
-            //if (args.Any(x => x == "UPDATE_AST"))
-            //    UpdateAST();
+            if (args.Any(x => x == "UPDATE_AST"))
+                UpdateAST();
 
             if (args.Any())
                 RunFile(args.First());
@@ -62,13 +62,14 @@ namespace Ream
                 "While      : Expr condition, Stmt body",
                 "Import     : Token name",
                 "For        : Token name, Expr iterator, Stmt body",
+                "Evaluate   : Expr value",
             }.ToList());
 
             Console.WriteLine("[ASTGenerator] AST nodes Expr and Stmt have been updated");
             Environment.Exit(0);
         }
 
-        private static void RunFile(string path)
+        public static void RunFile(string path)
         {
             Run(File.ReadAllText(path));
 
@@ -88,7 +89,7 @@ namespace Ream
             }
         }
 
-        private static void Run(string source)
+        public static void Run(string source)
         {
             Lexer lexer = new(source);
             List<Token> tokens = lexer.Lex();

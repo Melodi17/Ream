@@ -11,6 +11,7 @@
             {
                 "using Ream.Lexing;",
                 "using Ream.Interpreting;",
+                "using Ream.SDK;",
                 "",
                 $"namespace Ream.Parsing",
                 "{",

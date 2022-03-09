@@ -10,9 +10,7 @@
 
 ## To-do
 
-- Write get started instructions
 - Rewrite documentation
-- Add casting
 
 ## Change-log
 
@@ -39,3 +37,5 @@
 - Added import statement
 - Added indexers
 - Added properties to basic types
+- Added string escaping
+- Added casting

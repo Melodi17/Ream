@@ -383,6 +383,7 @@ namespace Ream.Parsing
             if (Match(TokenType.While)) return WhileStatement();
             if (Match(TokenType.For)) return ForStatement();
             if (Match(TokenType.Print)) return PrintStatement();
+            if (Match(TokenType.Evaluate)) return EvaluateStatement();
             if (Match(TokenType.Import)) return ImportStatement();
             if (Match(TokenType.Return)) return ReturnStatement();
             if (Match(TokenType.Left_Brace)) return new Stmt.Block(Block());
@@ -509,6 +510,12 @@ namespace Ream.Parsing
             Expr value = Expression();
             InsistEnd();
             return new Stmt.Print(value);
+        }
+        private Stmt EvaluateStatement()
+        {
+            Expr value = Expression();
+            InsistEnd();
+            return new Stmt.Evaluate(value);
         }
         private Stmt ImportStatement()
         {
