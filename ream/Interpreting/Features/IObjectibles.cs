@@ -153,7 +153,7 @@ namespace Ream.Interpreting
                 ExternalFunction initializer = all.First(GetNonStaticInitializer).Value as ExternalFunction;
                 return initializer.ArgumentCount();
             }
-            return 0;
+            return -1;
         }
 
         public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal)
@@ -161,7 +161,7 @@ namespace Ream.Interpreting
 
         public object Call(Interpreter interpreter, List<object> arguments)
         {
-            ExternalClassInstance inst = new(this, scope);
+            ExternalClassInstance inst = new(this, scope, arguments);
             var all = scope.All();
 
             if (all.Any(GetNonStaticInitializer))
@@ -241,11 +241,11 @@ namespace Ream.Interpreting
         public ExternalClass Class;
         public object Instance;
         private Scope Scope;
-        public ExternalClassInstance(ExternalClass clss, Scope scope)
+        public ExternalClassInstance(ExternalClass clss, Scope scope, List<object> aruments)
         {
             Class = clss;
             Scope = scope;
-            Instance = Activator.CreateInstance(Class.Type);
+            Instance = Activator.CreateInstance(Class.Type, aruments.ToArray());
         }
         public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal)
             => Scope.AutoDetectType(key, manualType);

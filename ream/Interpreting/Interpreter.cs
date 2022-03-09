@@ -341,8 +341,8 @@ namespace Ream.Interpreting
             ICallable function = (ICallable)callee;
 
             int count = function.ArgumentCount();
-            if (count != -1)
-                while (args.Count != count)
+            if (count > 0)
+                while (args.Count < count)
                     args.Add(null);
 
             return function.Call(this, args);
