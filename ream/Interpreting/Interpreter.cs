@@ -24,8 +24,9 @@ namespace Ream.Interpreting
         }
 
         [ExternalFunction]
-        public static object Read()
+        public static object Read(object text)
         {
+            Write(text);
             return Console.ReadLine();
         }
 
