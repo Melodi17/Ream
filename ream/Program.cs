@@ -24,7 +24,7 @@ namespace Ream
                 UpdateAST();
 
             if (args.Any())
-                RunFile(args.First());
+                RunFile(string.Join(" ", args));
             else
                 RunPrompt();
         }
