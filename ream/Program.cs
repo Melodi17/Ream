@@ -56,6 +56,7 @@ namespace Ream
                 "Expression : Expr expression",
                 "Function   : Token name, VariableType type, List<Token> parameters, List<Stmt> body",
                 "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
+                "Thread     : Stmt body",
                 "Print      : Expr expression",
                 "Return     : Token keyword, Expr value",
                 "Typed      : Token name, Expr initializer, VariableType type",

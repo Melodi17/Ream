@@ -50,27 +50,29 @@ namespace Ream.Interpreting
             if (double.TryParse(Interpreter.Stringify(obj), out double res))
                 return res;
 
-            return null;            
+            return null;
         }
     }
     public class Interpreter : Expr.Visitor<Object>, Stmt.Visitor<Object>
     {
         public readonly Scope Globals;
-        private Scope Scope;
+        private Dictionary<long, Scope> Scope = new();
+        private long CurrentThread;
         //private readonly Dictionary<Expr, int> Locals = new();
         public Interpreter()
         {
             Globals = new();
-            Scope = new(Globals);
+            CurrentThread = 0;
+            Scope[CurrentThread] = new(Globals);
 
             Globals.Define("Main", new ExternalClass(typeof(MainInterpret), this));
             Globals.Define("Cast", new ExternalClass(typeof(CastInterpret), this));
 
-            Globals.Define("print", new ExternalFunction((i, j) =>
-            {
-                Console.WriteLine(j.First());
-                return null;
-            }, 1));
+            //Globals.Define("print", new ExternalFunction((i, j) =>
+            //{
+            //    Console.WriteLine(j.First());
+            //    return null;
+            //}, 1));
         }
 
         public void Interpret(List<Stmt> statements)
@@ -145,22 +147,22 @@ namespace Ream.Interpreting
         public object DeclareStmt(Token name, Expr initializer, VariableType type)
         {
             object value = null;
-            VariableType autoType = Scope.AutoDetectType(name, type);
+            VariableType autoType = Scope[CurrentThread].AutoDetectType(name, type);
 
             if (initializer != null && !autoType.HasFlag(VariableType.Dynamic))
                 value = Evaluate(initializer);
             else
                 value = initializer;
 
-            Scope.Set(name, value, type);
+            Scope[CurrentThread].Set(name, value, type);
             return value;
         }
         public void ExecuteBlock(List<Stmt> statements, Scope scope)
         {
-            Scope previous = this.Scope;
+            Scope previous = this.Scope[CurrentThread];
             try
             {
-                this.Scope = scope;
+                this.Scope[CurrentThread] = scope;
 
                 foreach (Stmt statement in statements)
                 {
@@ -169,7 +171,7 @@ namespace Ream.Interpreting
             }
             finally
             {
-                this.Scope = previous;
+                this.Scope[CurrentThread] = previous;
             }
         }
         public List<object> GetIterator(Token tok, Expr expression)
@@ -216,6 +218,14 @@ namespace Ream.Interpreting
                 throw new RuntimeError(tok, "Object was not Propable");
             }
         }
+        public void LoadAssemblyLibrary(Assembly asm)
+        {
+            foreach (Type type in asm.GetTypes()
+                .Where(x => x.GetCustomAttribute<ExternalClassAttribute>() != null))
+            {
+                Globals.Define(type.Name, new ExternalClass(type, this), VariableType.Global);
+            }
+        }
 
         #region VisitExpr
         public object VisitAssignExpr(Expr.Assign expr)
@@ -227,11 +237,11 @@ namespace Ream.Interpreting
         }
         public object VisitVariableExpr(Expr.Variable expr)
         {
-            object obj = Scope.Get(expr.name);
+            object obj = Scope[CurrentThread].Get(expr.name);
             if (obj == null)
                 return null;
 
-            VariableData data = Scope.GetData(expr.name);
+            VariableData data = Scope[CurrentThread].GetData(expr.name);
 
             if (data.Type.HasFlag(VariableType.Dynamic))
             {
@@ -246,7 +256,7 @@ namespace Ream.Interpreting
         }
         public object VisitLambdaExpr(Expr.Lambda expr)
         {
-            Lambda function = new(expr, Scope);
+            Lambda function = new(expr, Scope[CurrentThread]);
             return function;
         }
         public object VisitBinaryExpr(Expr.Binary expr)
@@ -394,7 +404,7 @@ namespace Ream.Interpreting
         }
         public object VisitThisExpr(Expr.This expr)
         {
-            return Scope.Get(expr.keyword);
+            return Scope[CurrentThread].Get(expr.keyword);
         }
         #endregion
 
@@ -414,7 +424,7 @@ namespace Ream.Interpreting
         }
         public object VisitBlockStmt(Stmt.Block stmt)
         {
-            ExecuteBlock(stmt.statements, new Scope(Scope));
+            ExecuteBlock(stmt.statements, new Scope(Scope[CurrentThread]));
             return null;
         }
         public object VisitTypedStmt(Stmt.Typed stmt)
@@ -430,8 +440,8 @@ namespace Ream.Interpreting
         }
         public object VisitFunctionStmt(Stmt.Function stmt)
         {
-            Function function = new(stmt, Scope);
-            Scope.Set(stmt.name, function, stmt.type);
+            Function function = new(stmt, Scope[CurrentThread]);
+            Scope[CurrentThread].Set(stmt.name, function, stmt.type);
             return null;
         }
         public object VisitWhileStmt(Stmt.While stmt)
@@ -446,19 +456,19 @@ namespace Ream.Interpreting
         {
             if (stmt.name != null)
             {
-                Scope previous = this.Scope;
+                Scope previous = this.Scope[CurrentThread];
                 try
                 {
-                    this.Scope = new Scope(this.Scope);
+                    this.Scope[CurrentThread] = new Scope(this.Scope[CurrentThread]);
                     foreach (object item in GetIterator(stmt.name, stmt.iterator))
                     {
-                        Scope.Set(stmt.name, item);
+                        Scope[CurrentThread].Set(stmt.name, item);
                         Execute(stmt.body);
                     }
                 }
                 finally
                 {
-                    this.Scope = previous;
+                    this.Scope[CurrentThread] = previous;
                 }
             }
             else
@@ -497,24 +507,38 @@ namespace Ream.Interpreting
                 }
             }
             Class clss = new(stmt.name.Raw, this, scope, staticScope);
-            Scope.Set(stmt.name, clss, VariableType.Global);
+            Scope[CurrentThread].Set(stmt.name, clss, VariableType.Global);
 
             return null;
         }
         public object VisitImportStmt(Stmt.Import stmt)
         {
-            string path = stmt.name.Raw + ".dll";
-            string libDataPath = Path.Join(Program.LibDataPath, path);
-            if (File.Exists(path))
+            string dllPath = stmt.name.Raw + ".dll";
+            string dllLibDataPath = Path.Join(Program.LibDataPath, dllPath);
+            if (File.Exists(dllPath))
             {
-                Assembly asm = Assembly.LoadFrom(path);
+                Assembly asm = Assembly.LoadFrom(dllPath);
                 LoadAssemblyLibrary(asm);
             }
-            else if (File.Exists(libDataPath))
+            else if (File.Exists(dllLibDataPath))
             {
-                Assembly asm = Assembly.LoadFrom(libDataPath);
+                Assembly asm = Assembly.LoadFrom(dllLibDataPath);
                 LoadAssemblyLibrary(asm);
             }
+            else
+            {
+                string reamPath = stmt.name.Raw + ".r";
+                string reamLibDataPath = Path.Join(Program.LibDataPath, reamPath);
+                if (File.Exists(reamPath))
+                {
+                    Program.RunFile(reamPath);
+                }
+                else if (File.Exists(reamLibDataPath))
+                {
+                    Program.RunFile(reamLibDataPath);
+                }
+            }
+
             return null;
         }
         public object VisitEvaluateStmt(Stmt.Evaluate stmt)
@@ -523,13 +547,11 @@ namespace Ream.Interpreting
             Program.Run(Stringify(obj));
             return null;
         }
-        public void LoadAssemblyLibrary(Assembly asm)
+        public object VisitThreadStmt(Stmt.Thread stmt)
         {
-            foreach (Type type in asm.GetTypes()
-                .Where(x => x.GetCustomAttribute<ExternalClassAttribute>() != null))
-            {
-                Globals.Define(type.Name, new ExternalClass(type, this), VariableType.Global);
-            }
+            // TODO: Multiple threads
+            Execute(stmt.body);
+            return null;
         }
         #endregion
     }

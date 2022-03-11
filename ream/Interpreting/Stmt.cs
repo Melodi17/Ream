@@ -14,6 +14,7 @@ namespace Ream.Parsing
          public T VisitExpressionStmt(Expression stmt);
          public T VisitFunctionStmt(Function stmt);
          public T VisitIfStmt(If stmt);
+         public T VisitThreadStmt(Thread stmt);
          public T VisitPrintStmt(Print stmt);
          public T VisitReturnStmt(Return stmt);
          public T VisitTypedStmt(Typed stmt);
@@ -106,6 +107,21 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitIfStmt(this);
+          }
+      }
+
+     public class Thread : Stmt
+      {
+     public readonly Stmt body;
+
+         public Thread(Stmt body)
+          {
+             this.body = body;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitThreadStmt(this);
           }
       }
 

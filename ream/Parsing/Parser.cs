@@ -380,6 +380,7 @@ namespace Ream.Parsing
         private Stmt Statement()
         {
             if (Match(TokenType.If)) return IfStatement();
+            if (Match(TokenType.Thread)) return ThreadStatement();
             if (Match(TokenType.While)) return WhileStatement();
             if (Match(TokenType.For)) return ForStatement();
             if (Match(TokenType.Print)) return PrintStatement();
@@ -422,10 +423,12 @@ namespace Ream.Parsing
                 name = Consume(TokenType.Identifier, "Expected function name");
             else
                 name = new Token(TokenType.Identifier, defaultName, null, 0);
+
             List<Token> parameters = new();
+
             if (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace)))
             {
-                Consume(TokenType.Colon, "Expected ':' after function name");
+                if (defaultName.Length == 0) Consume(TokenType.Colon, "Expected ':' after function name");
 
                 do
                 {
@@ -538,6 +541,13 @@ namespace Ream.Parsing
             }
 
             return new Stmt.If(condition, thenBranch, elseBranch);
+        }
+        private Stmt ThreadStatement()
+        {
+            InsistEnd();
+            Stmt body = Statement();
+
+            return new Stmt.Thread(body);
         }
         private Stmt WhileStatement()
         {
