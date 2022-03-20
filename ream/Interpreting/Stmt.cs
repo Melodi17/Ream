@@ -4,7 +4,7 @@ using Ream.SDK;
 
 namespace Ream.Parsing
 {
-   public abstract class Stmt
+   [Serializable] public abstract class Stmt
    {
      public abstract T Accept<T>(Visitor<T> visitor);
      public interface Visitor<T>
@@ -23,7 +23,7 @@ namespace Ream.Parsing
          public T VisitForStmt(For stmt);
          public T VisitEvaluateStmt(Evaluate stmt);
      }
-     public class Block : Stmt
+     [Serializable] public class Block : Stmt
       {
      public readonly List<Stmt> statements;
 
@@ -38,7 +38,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Class : Stmt
+     [Serializable] public class Class : Stmt
       {
      public readonly Token name;
      public readonly List<Stmt.Function> functions;
@@ -55,7 +55,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Expression : Stmt
+     [Serializable] public class Expression : Stmt
       {
      public readonly Expr expression;
 
@@ -70,7 +70,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Function : Stmt
+     [Serializable] public class Function : Stmt
       {
      public readonly Token name;
      public readonly VariableType type;
@@ -91,7 +91,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class If : Stmt
+     [Serializable] public class If : Stmt
       {
      public readonly Expr condition;
      public readonly Stmt thenBranch;
@@ -110,7 +110,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Thread : Stmt
+     [Serializable] public class Thread : Stmt
       {
      public readonly Stmt body;
 
@@ -125,7 +125,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Print : Stmt
+     [Serializable] public class Print : Stmt
       {
      public readonly Expr expression;
 
@@ -140,7 +140,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Return : Stmt
+     [Serializable] public class Return : Stmt
       {
      public readonly Token keyword;
      public readonly Expr value;
@@ -157,7 +157,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Typed : Stmt
+     [Serializable] public class Typed : Stmt
       {
      public readonly Token name;
      public readonly Expr initializer;
@@ -176,7 +176,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class While : Stmt
+     [Serializable] public class While : Stmt
       {
      public readonly Expr condition;
      public readonly Stmt body;
@@ -193,7 +193,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Import : Stmt
+     [Serializable] public class Import : Stmt
       {
      public readonly Token name;
 
@@ -208,7 +208,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class For : Stmt
+     [Serializable] public class For : Stmt
       {
      public readonly Token name;
      public readonly Expr iterator;
@@ -227,7 +227,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Evaluate : Stmt
+     [Serializable] public class Evaluate : Stmt
       {
      public readonly Expr value;
 

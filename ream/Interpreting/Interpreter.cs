@@ -58,6 +58,7 @@ namespace Ream.Interpreting
         public readonly Scope Globals;
         private Dictionary<long, Scope> Scope = new();
         private long CurrentThread;
+
         //private readonly Dictionary<Expr, int> Locals = new();
         public Interpreter()
         {
@@ -74,7 +75,7 @@ namespace Ream.Interpreting
             //    return null;
             //}, 1));
         }
-
+        
         public void Interpret(List<Stmt> statements)
         {
             try
@@ -212,6 +213,10 @@ namespace Ream.Interpreting
             else if (obj is string s)
             {
                 return new StringPropMap(s);
+            }
+            else if (obj != null)
+            {
+                return new AutoPropMap(obj);
             }
             else
             {

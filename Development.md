@@ -39,3 +39,6 @@
 - Added properties to basic types
 - Added string escaping
 - Added casting
+- Added autopropmap
+- Added build script (compilation)
+- Added time script

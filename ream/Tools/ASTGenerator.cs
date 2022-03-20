@@ -15,7 +15,7 @@
                 "",
                 $"namespace Ream.Parsing",
                 "{",
-               $"   public abstract class {baseName}",
+               $"   [Serializable] public abstract class {baseName}",
                 "   {",
             });
 
@@ -53,7 +53,7 @@
 
         private static void DefineType(StreamWriter sw, string baseName, string className, string classFieldsStr)
         {
-            sw.WriteLine($"     public class {className} : {baseName}");
+            sw.WriteLine($"     [Serializable] public class {className} : {baseName}");
             sw.WriteLine("      {");
 
             string[] classFields = classFieldsStr.Split(", ");

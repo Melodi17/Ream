@@ -68,4 +68,70 @@ namespace Ream.Interpreting
 
         public void Set(Token key, object value, VariableType type = VariableType.Normal) { }
     }
+    public class AutoPropMap : IPropable
+    {
+        public readonly object InternalValue;
+        public readonly Type Type;
+        public AutoPropMap(object value)
+        {
+            InternalValue = value;
+            Type = value.GetType();
+        }
+        public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal)
+            => manualType;
+
+        public object Get(Token key)
+        {
+            PropertyInfo prop = Type.GetProperties().FirstOrDefault(x =>
+            {
+                var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
+                if (attribute == null)
+                    return false;
+                return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+            });
+            if (prop != null)
+                return prop.GetValue(InternalValue);
+
+            FieldInfo field = Type.GetFields().FirstOrDefault(x =>
+            {
+                var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
+                if (attribute == null)
+                    return false;
+                return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+            });
+            if (field != null)
+                return field.GetValue(InternalValue);
+
+            return null;
+        }
+
+        public void Set(Token key, object value, VariableType type = VariableType.Normal)
+        {
+            PropertyInfo prop = Type.GetProperties().FirstOrDefault(x =>
+            {
+                var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
+                if (attribute == null)
+                    return false;
+                return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+            });
+            if (prop != null)
+            {
+                prop.SetValue(InternalValue, value);
+                return;
+            }
+
+            FieldInfo field = Type.GetFields().FirstOrDefault(x =>
+            {
+                var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
+                if (attribute == null)
+                    return false;
+                return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+            });
+            if (field != null)
+            {
+                field.SetValue(InternalValue, value);
+                return;
+            }
+        }
+    }
 }

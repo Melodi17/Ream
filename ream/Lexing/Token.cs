@@ -1,6 +1,6 @@
 ﻿namespace Ream.Lexing
 {
-    public class Token
+    [Serializable] public class Token
     {
         public readonly TokenType Type;
         public readonly string Raw;

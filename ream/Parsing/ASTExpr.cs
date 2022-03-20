@@ -4,7 +4,7 @@ using Ream.SDK;
 
 namespace Ream.Parsing
 {
-   public abstract class Expr
+   [Serializable] public abstract class Expr
    {
      public abstract T Accept<T>(Visitor<T> visitor);
      public interface Visitor<T>
@@ -24,7 +24,7 @@ namespace Ream.Parsing
          public T VisitUnaryExpr(Unary expr);
          public T VisitVariableExpr(Variable expr);
      }
-     public class Assign : Expr
+     [Serializable] public class Assign : Expr
       {
      public readonly Token name;
      public readonly Expr value;
@@ -41,7 +41,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Binary : Expr
+     [Serializable] public class Binary : Expr
       {
      public readonly Expr left;
      public readonly Token @operator;
@@ -60,7 +60,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Call : Expr
+     [Serializable] public class Call : Expr
       {
      public readonly Expr callee;
      public readonly Token paren;
@@ -79,7 +79,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Indexer : Expr
+     [Serializable] public class Indexer : Expr
       {
      public readonly Expr callee;
      public readonly Token paren;
@@ -98,7 +98,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Get : Expr
+     [Serializable] public class Get : Expr
       {
      public readonly Expr obj;
      public readonly Token name;
@@ -115,7 +115,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Grouping : Expr
+     [Serializable] public class Grouping : Expr
       {
      public readonly Expr expression;
 
@@ -130,7 +130,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Sequence : Expr
+     [Serializable] public class Sequence : Expr
       {
      public readonly List<Expr> items;
 
@@ -145,7 +145,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Lambda : Expr
+     [Serializable] public class Lambda : Expr
       {
      public readonly List<Token> parameters;
      public readonly List<Stmt> body;
@@ -162,7 +162,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Literal : Expr
+     [Serializable] public class Literal : Expr
       {
      public readonly Object value;
 
@@ -177,7 +177,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Logical : Expr
+     [Serializable] public class Logical : Expr
       {
      public readonly Expr left;
      public readonly Token @operator;
@@ -196,7 +196,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Set : Expr
+     [Serializable] public class Set : Expr
       {
      public readonly Expr obj;
      public readonly Token name;
@@ -215,7 +215,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class This : Expr
+     [Serializable] public class This : Expr
       {
      public readonly Token keyword;
 
@@ -230,7 +230,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Unary : Expr
+     [Serializable] public class Unary : Expr
       {
      public readonly Token @operator;
      public readonly Expr right;
@@ -247,7 +247,7 @@ namespace Ream.Parsing
           }
       }
 
-     public class Variable : Expr
+     [Serializable] public class Variable : Expr
       {
      public readonly Token name;
 
