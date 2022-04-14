@@ -1,5 +1,4 @@
 ﻿using System.Runtime.Serialization.Formatters.Binary;
-using Polenter.Serialization;
 using Ream.Interpreting;
 using Ream.Lexing;
 using Ream.Parsing;
@@ -82,6 +81,7 @@ namespace Ream
                 "Import     : Token name",
                 "For        : Token name, Expr iterator, Stmt body",
                 "Evaluate   : Expr value",
+                "Script     : Token body",
             }.ToList());
 
             Console.WriteLine("[ASTGenerator] AST nodes Expr and Stmt have been updated");

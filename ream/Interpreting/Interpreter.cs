@@ -58,6 +58,7 @@ namespace Ream.Interpreting
         public readonly Scope Globals;
         private Dictionary<long, Scope> Scope = new();
         private long CurrentThread;
+        private Stack<object> Script = new();
 
         //private readonly Dictionary<Expr, int> Locals = new();
         public Interpreter()
@@ -556,6 +557,44 @@ namespace Ream.Interpreting
         {
             // TODO: Multiple threads
             Execute(stmt.body);
+            return null;
+        }
+        public object VisitScriptStmt(Stmt.Script stmt)
+        {
+            string[] splt = stmt.body.Literal.ToString().Split(" ", 2);
+            string keyword = splt[0].ToLower();
+            string args = splt.Length > 1 ? splt[1] : "";
+
+            switch (keyword)
+            {
+                case "dispose":
+                    Scope[CurrentThread].Dispose(args);
+                    break;
+
+                case "store":
+                    Script.Push(Scope[CurrentThread].Get(args));
+                    break;
+
+                case "load":
+                    Scope[CurrentThread].Set(args, Script.Pop());
+                    break;
+
+                case "mem":
+                    Script.Push(Scope[CurrentThread]
+                        .All()
+                        .Select(x => (object)new KeyValuePropMap(x.Key, x.Value))
+                        .ToList());
+                    break;
+
+                case "mov":
+                    Script.Push(args);
+                    break;
+
+                default:
+                    throw new RuntimeError(stmt.body, "Script failed, unknown keyword");
+                    break;
+            }
+
             return null;
         }
         #endregion

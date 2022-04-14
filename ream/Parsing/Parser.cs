@@ -1,4 +1,5 @@
-﻿using Ream.Interpreting;
+﻿using System.Text;
+using Ream.Interpreting;
 using Ream.Lexing;
 using Ream.SDK;
 
@@ -387,6 +388,7 @@ namespace Ream.Parsing
             if (Match(TokenType.Evaluate)) return EvaluateStatement();
             if (Match(TokenType.Import)) return ImportStatement();
             if (Match(TokenType.Return)) return ReturnStatement();
+            if (Match(TokenType.Colon_Colon)) return ScriptStatement();
             if (Match(TokenType.Left_Brace)) return new Stmt.Block(Block());
 
             return ExpressionStatement();
@@ -541,6 +543,13 @@ namespace Ream.Parsing
             }
 
             return new Stmt.If(condition, thenBranch, elseBranch);
+        }
+        private Stmt ScriptStatement()
+        {
+            Token body = Consume(TokenType.String, "Expected script body after '::'");
+            InsistEnd();
+
+            return new Stmt.Script(body);
         }
         private Stmt ThreadStatement()
         {

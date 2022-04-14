@@ -84,7 +84,55 @@ namespace Ream.Interpreting
                 }
             }
         }
+        public void Dispose(string key, VariableType manualType = VariableType.Normal)
+        {
+            VariableType type = AutoDetectType(key, manualType);
 
+            // Variable is not null and is readonly, so it cannot be changed
+            if (Get(key) != null && GetData(key).Type.HasFlag(VariableType.Final))
+                return;
+
+            if (type.HasFlag(VariableType.Global))
+            {
+                if (HasParent)
+                {
+                    Global.Dispose(key, type);
+                }
+                else
+                {
+                    Values.Remove(key);
+                    VariableData.Remove(key);
+                }
+            }
+            else if (type.HasFlag(VariableType.Local))
+            {
+                Values.Remove(key);
+                VariableData.Remove(key);
+            }
+            else
+            {
+                // If it exists locally
+                if (Has(key, false))
+                {
+                    Values.Remove(key);
+                    VariableData.Remove(key);
+                }
+                else
+                {
+                    // If it exists anywhere
+                    if (Has(key, true))
+                    {
+                        // Recall
+                        Parent.Dispose(key, type);
+                    }
+                    else
+                    {
+                        // We need to report this
+                        throw new RuntimeError("", "Specified key was not present, unable to be disposed");
+                    }
+                }
+            }
+        }
         public bool Has(string key, bool canCheckParent = true)
         {
             bool has = Values.ContainsKey(key);

@@ -68,6 +68,30 @@ namespace Ream.Interpreting
 
         public void Set(Token key, object value, VariableType type = VariableType.Normal) { }
     }
+    public class KeyValuePropMap : IPropable
+    {
+        public readonly string Key;
+        public readonly object Value;
+        public KeyValuePropMap(string key, object value)
+        {
+            Key = key;
+            Value = value;
+        }
+        public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal)
+            => manualType;
+
+        public object Get(Token key)
+        {
+            return key.Raw switch
+            {
+                "Key" => Key,
+                "Value" => Value,
+                _ => null,
+            };
+        }
+
+        public void Set(Token key, object value, VariableType type = VariableType.Normal) { }
+    }
     public class AutoPropMap : IPropable
     {
         public readonly object InternalValue;

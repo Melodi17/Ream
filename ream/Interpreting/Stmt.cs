@@ -22,6 +22,7 @@ namespace Ream.Parsing
          public T VisitImportStmt(Import stmt);
          public T VisitForStmt(For stmt);
          public T VisitEvaluateStmt(Evaluate stmt);
+         public T VisitScriptStmt(Script stmt);
      }
      [Serializable] public class Block : Stmt
       {
@@ -239,6 +240,21 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitEvaluateStmt(this);
+          }
+      }
+
+     [Serializable] public class Script : Stmt
+      {
+     public readonly Token body;
+
+         public Script(Token body)
+          {
+             this.body = body;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitScriptStmt(this);
           }
       }
 
