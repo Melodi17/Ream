@@ -3,38 +3,6 @@ using Ream.SDK;
 
 namespace Ream.Interpreting
 {
-    public class Pointer : IPropable
-    {
-        private static Dictionary<int, object> Memory = new();
-        private static int nextKey = 0;
-
-        private int key;
-        public Pointer(int key)
-        {
-            this.key = key;
-        }
-        public Pointer(object value)
-        {
-            this.key = nextKey++;
-            Memory[this.key] = value;
-        }
-        public void Dispose()
-        {
-            Memory.Remove(this.key);
-        }
-        public object Get()
-        {
-            return Memory.ContainsKey(this.key) ? Memory[this.key] : null;
-        }
-        public void Set(object obj)
-        {
-            if (Memory.ContainsKey(this.key))
-                Memory[this.key] = obj;
-        }
-        public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal) => manualType;
-        public object Get(Token key) => null;
-        public void Set(Token key, object value, VariableType type = VariableType.Normal) { }
-    }
     public class Scope
     {
         public bool HasParent => Parent != null;
