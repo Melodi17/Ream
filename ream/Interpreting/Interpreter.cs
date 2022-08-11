@@ -45,6 +45,8 @@ namespace Ream.Interpreting
                 {
                     Execute(statement);
                 }
+
+                this.scope.FreeMemory();
             }
             finally
             {
@@ -145,6 +147,7 @@ namespace Ream.Interpreting
                         scope.Set(stmt.name, item);
                         Execute(stmt.body);
                     }
+                    scope.FreeMemory();
                 }
                 finally
                 {

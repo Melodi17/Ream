@@ -121,6 +121,7 @@ namespace Ream
             if (ErrorOccured) return;
 
             Interpreter.Interpret(statements);
+            //Console.WriteLine("Pointer count: " + Pointer.GetPointerCount());
             //Console.WriteLine(new ASTPrinter().Print(expression));
         }
         public static void Compile(string sourceFile, string destinationFile)

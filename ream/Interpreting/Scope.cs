@@ -28,19 +28,22 @@ namespace Ream.Interpreting
         }
         public void Set(object obj)
         {
-            if (Memory.ContainsKey(this.key))
-                Memory[this.key] = obj;
+            Memory[this.key] = obj;
         }
         public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal) => manualType;
         public object Get(Token key) => null;
         public void Set(Token key, object value, VariableType type = VariableType.Normal) { }
+        public static int GetPointerCount()
+        {
+            return Memory.Count;
+        }
     }
     public class Scope
     {
         public bool HasParent => Parent != null;
         public Scope Global => HasParent ? Parent.Global : this;
         public readonly Scope Parent;
-        private readonly Dictionary<string, object> Values = new();
+        private readonly Dictionary<string, Pointer> Values = new();
         private readonly Dictionary<string, VariableData> VariableData = new();
 
         public Scope()
@@ -54,7 +57,8 @@ namespace Ream.Interpreting
 
         public void Define(string key, object value, VariableType type = VariableType.Normal)
         {
-            Values[key] = value;
+            // Shouldn't already exist
+            Values[key] = new(value);
             VariableData[key] = new(type, this);
         }
         public VariableType AutoDetectType(Token key, VariableType manualType)
@@ -63,6 +67,11 @@ namespace Ream.Interpreting
                 ? GetData(key)?.Type ?? manualType : manualType;
 
             return type;
+        }
+        public void FreeMemory()
+        {
+            foreach (Pointer pointer in Values.Values)
+                pointer.Dispose();
         }
         public void Set(Token key, object value, VariableType manualType = VariableType.Normal)
         {
@@ -82,13 +91,15 @@ namespace Ream.Interpreting
                 }
                 else
                 {
-                    Values[keyName] = value;
+                    if (Values.ContainsKey(keyName)) Values[keyName].Set(value);
+                    else Values[keyName] = new(value);
                     VariableData[key.Raw] = new(type, this);
                 }
             }
             else if (type.HasFlag(VariableType.Local))
             {
-                Values[keyName] = value;
+                if (Values.ContainsKey(keyName)) Values[keyName].Set(value); 
+                else Values[keyName] = new(value);
                 VariableData[key.Raw] = new(type, this);
             }
             else
@@ -96,7 +107,8 @@ namespace Ream.Interpreting
                 // If it exists locally
                 if (Has(keyName, false))
                 {
-                    Values[keyName] = value;
+                    if (Values.ContainsKey(keyName)) Values[keyName].Set(value);
+                    else Values[keyName] = new(value);
                     VariableData[key.Raw] = new(type, this);
                 }
                 else
@@ -110,7 +122,8 @@ namespace Ream.Interpreting
                     else
                     {
                         // We need to create it
-                        Values[keyName] = value;
+                        if (Values.ContainsKey(keyName)) Values[keyName].Set(value);
+                        else Values[keyName] = new(value);
                         VariableData[key.Raw] = new(type, this);
                     }
                 }
@@ -132,7 +145,7 @@ namespace Ream.Interpreting
 
             // If can be found locally
             if (Values.ContainsKey(keyName))
-                return Values[keyName];
+                return Values[keyName].Get();
 
             // If can't be found locally and has a parent to check
             if (HasParent) return Parent.Get(key);
@@ -157,7 +170,7 @@ namespace Ream.Interpreting
         }
 
         public Dictionary<string, object> All()
-            => Values;
+            => Values.ToDictionary(x => x.Key, x => x.Value.Get());
     }
 
     public class VariableData
