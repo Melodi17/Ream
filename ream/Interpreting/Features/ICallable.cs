@@ -28,16 +28,27 @@ namespace Ream.Interpreting
         {
             var attribute = info.GetCustomAttribute<ExternalFunctionAttribute>();
             if (attribute == null)
-                throw new Exception("Unable to create external method without an ExternalFunctionAttribute");
+            {
+                _argumentCount = info.GetParameters().Length;
+                _func = new Func<object, List<object>, object>((ctx, args) =>
+                     info.Invoke(ctx, args.ToArray()));
+                Type = VariableType.Normal;
+                if (info.IsStatic && !Type.HasFlag(VariableType.Static))
+                    Type |= VariableType.Static;
 
-            _argumentCount = attribute.ArgumentCount == -1 ? info.GetParameters().Length : attribute.ArgumentCount;
-            _func = new Func<object, List<object>, object>((ctx, args) =>
-                 info.Invoke(ctx, args.ToArray()));
-            Type = attribute.Type;
-            if (info.IsStatic && !Type.HasFlag(VariableType.Static))
-                Type |= VariableType.Static;
+                Name = info.Name;
+            }
+            else
+            {
+                _argumentCount = attribute.ArgumentCount == -1 ? info.GetParameters().Length : attribute.ArgumentCount;
+                _func = new Func<object, List<object>, object>((ctx, args) =>
+                     info.Invoke(ctx, args.ToArray()));
+                Type = attribute.Type;
+                if (info.IsStatic && !Type.HasFlag(VariableType.Static))
+                    Type |= VariableType.Static;
 
-            Name = attribute.Name == "" ? info.Name : attribute.Name;
+                Name = attribute.Name == "" ? info.Name : attribute.Name;
+            }
         }
         public int ArgumentCount()
             => _argumentCount;

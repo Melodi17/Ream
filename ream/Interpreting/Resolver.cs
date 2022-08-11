@@ -1,210 +1,209 @@
 ﻿using Ream.Lexing;
-using Ream.Parsing;
 
 namespace Ream.Interpreting
 {
-    //public class Resolver : Expr.Visitor<object>, Stmt.Visitor<object>
-    //{
-    //    private readonly Interpreter Interpreter;
-    //    private readonly Stack<Dictionary<string, bool>> Scopes = new();
+    public class Resolver
+    {
+        private Interpreter interpreter;
+        public Resolver(Interpreter interpreter)
+        {
+            this.interpreter = interpreter;
+        }
 
-    //    public Resolver(Interpreter interpreter)
-    //    {
-    //        Interpreter = interpreter;
-    //    }
+        public const string OVERRIDE_STRINGIFY = "~string";
+        public const string OVERRIDE_ITERATOR = "~iterator";
+        public const string OVERRIDE_INDEX = "~index";
+        public const string OVERRIDE_INSTANCE = "~instance";
+        public const string OVERRIDE_EQUAL = "~equal";
 
-    //    public object VisitBlockStmt(Stmt.Block stmt)
-    //    {
-    //        BeginScope();
-    //        Resolve(stmt.statements);
-    //        EndScope();
-    //        return null;
-    //    }
-    //    public object VisitLocalStmt(Stmt.Local stmt)
-    //    {
-    //        Declare(stmt.name);
-    //        if (stmt.initializer != null)
-    //        {
-    //            Resolve(stmt.initializer);
-    //        }
-    //        Define(stmt.name);
-    //        return null;
-    //    }
-    //    public object VisitGlobalStmt(Stmt.Global stmt)
-    //    {
-    //        Declare(stmt.name);
-    //        if (stmt.initializer != null)
-    //        {
-    //            Resolve(stmt.initializer);
-    //        }
-    //        Define(stmt.name);
-    //        return null;
-    //    }
-    //    public object VisitFunctionStmt(Stmt.Function stmt)
-    //    {
-    //        Declare(stmt.name);
-    //        Define(stmt.name);
+        public const string OPERATOR_ADD = "~add";
+        public const string OPERATOR_SUBTRACT = "~subtract";
+        public const string OPERATOR_MULTIPLY = "~multiply";
+        public const string OPERATOR_DIVIDE = "~divide";
+        public const string OPERATOR_GREATER = "~greater";
+        public const string OPERATOR_LESS = "~less";
 
-    //        ResolveFunction(stmt);
-    //        return null;
-    //    }
-    //    public object VisitLambdaExpr(Expr.Lambda expr)
-    //    {
-    //        ResolveLambda(expr);
-    //        return null;
-    //    }
-    //    public object VisitExpressionStmt(Stmt.Expression stmt)
-    //    {
-    //        Resolve(stmt.expression);
-    //        return null;
-    //    }
-    //    public object VisitIfStmt(Stmt.If stmt)
-    //    {
-    //        Resolve(stmt.condition);
-    //        Resolve(stmt.thenBranch);
-    //        if (stmt.elseBranch != null) Resolve(stmt.elseBranch);
-    //        return null;
-    //    }
-    //    public object VisitWriteStmt(Stmt.Write stmt)
-    //    {
-    //        Resolve(stmt.expression);
-    //        return null;
-    //    }
-    //    public object VisitReturnStmt(Stmt.Return stmt)
-    //    {
-    //        if (stmt.value != null) Resolve(stmt.value);
-    //        return null;
-    //    }
-    //    public object VisitWhileStmt(Stmt.While stmt)
-    //    {
-    //        Resolve(stmt.condition);
-    //        Resolve(stmt.body);
-    //        return null;
-    //    }
-    //    public object VisitBinaryExpr(Expr.Binary expr)
-    //    {
-    //        Resolve(expr.left);
-    //        Resolve(expr.right);
-    //        return null;
-    //    }
-    //    public object VisitCallExpr(Expr.Call expr)
-    //    {
-    //        Resolve(expr.callee);
-    //        foreach (Expr arg in expr.arguments)
-    //            Resolve(arg);
+        public object Compare(object left, object right, TokenType type)
+        {
+            switch (type)
+            {
+                case TokenType.Equal_Equal:
+                    return Equal(left, right);
+                case TokenType.Not_Equal:
+                    return !Equal(left, right);
 
-    //        return null;
-    //    }
-    //    public object VisitGroupingExpr(Expr.Grouping expr)
-    //    {
-    //        Resolve(expr.expression);
-    //        return null;
-    //    }
-    //    public object VisitLiteralExpr(Expr.Literal expr)
-    //    {
-    //        return null;
-    //    }
-    //    public object VisitLogicalExpr(Expr.Logical expr)
-    //    {
-    //        Resolve(expr.left);
-    //        Resolve(expr.right);
-    //        return null;
-    //    }
-    //    public object VisitUnaryExpr(Expr.Unary expr)
-    //    {
-    //        Resolve(expr.right);
-    //        return null;
-    //    }
-    //    public object VisitVariableExpr(Expr.Variable expr)
-    //    {
-    //        if (Scopes.Any() && Scopes.Peek()[expr.name.Raw] == false)
-    //        {
-    //            Program.Error(expr.name, "Can't read self while in initializer");
-    //        }
+                case TokenType.Plus:
+                    {
+                        IPropable prop = GetPropable(left);
+                        if (prop != null)
+                            if (prop.Get(OPERATOR_ADD) is ICallable func)
+                                return func.Call(interpreter, new() { right });
 
-    //        ResolveLocal(expr, expr.name);
-    //        return null;
-    //    }
-    //    public object VisitAssignExpr(Expr.Assign expr)
-    //    {
-    //        Resolve(expr.value);
-    //        ResolveLocal(expr, expr.name);
-    //        return null;
-    //    }
-    //    public object VisitForStmt(Stmt.For stmt)
-    //    {
-    //        Resolve(stmt.iterator);
-    //        Resolve(stmt.body);
-    //        return null;
-    //    }
-    //    private void ResolveFunction(Stmt.Function stmt)
-    //    {
-    //        BeginScope();
-    //        foreach (Token tok in stmt.parameters)
-    //        {
-    //            Declare(tok);
-    //            Define(tok);
-    //        }
-    //        Resolve(stmt.body);
-    //        EndScope();
-    //    }
-    //    private void ResolveLambda(Expr.Lambda expr)
-    //    {
-    //        BeginScope();
-    //        foreach (Token tok in expr.parameters)
-    //        {
-    //            Declare(tok);
-    //            Define(tok);
-    //        }
-    //        Resolve(expr.body);
-    //        EndScope();
-    //    }
-    //    private void ResolveLocal(Expr expr, Token name)
-    //    {
-    //        for (int i = Scopes.Count - 1; i >= 0; i--)
-    //        {
-    //            if (Scopes.ElementAt(i).ContainsKey(name.Raw))
-    //            {
-    //                Interpreter.Resolve(expr, Scopes.Count - 1 - i);
-    //                return;
-    //            }
-    //        }
-    //    }
+                        return null;
+                    }
 
-    //    private void Declare(Token name)
-    //    {
-    //        if (!Scopes.Any()) return;
+                case TokenType.Minus:
+                    {
+                        IPropable prop = GetPropable(left);
+                        if (prop != null)
+                            if (prop.Get(OPERATOR_SUBTRACT) is ICallable func)
+                                return func.Call(interpreter, new() { right });
 
-    //        Dictionary<string, bool> scope = Scopes.Peek();
-    //        scope[name.Raw] = false;
-    //    }
-    //    private void Define(Token name)
-    //    {
-    //        if (!Scopes.Any()) return;
+                        return null;
+                    }
 
-    //        Dictionary<string, bool> scope = Scopes.Peek();
-    //        scope[name.Raw] = true;
-    //    }
-    //    private void Resolve(List<Stmt> statements)
-    //    {
-    //        foreach (Stmt stmt in statements)
-    //            Resolve(stmt);
-    //    }
-    //    private void Resolve(Stmt statement)
-    //    {
-    //        statement.Accept(this);
-    //    }
-    //    private void Resolve(Expr expression)
-    //    {
-    //        expression.Accept(this);
-    //    }
-    //    private void BeginScope()
-    //    {
-    //        Scopes.Push(new());
-    //    }
-    //    private void EndScope()
-    //    {
-    //        Scopes.Pop();
-    //    }
-    //}
+                case TokenType.Star:
+                    {
+                        IPropable prop = GetPropable(left);
+                        if (prop != null)
+                            if (prop.Get(OPERATOR_MULTIPLY) is ICallable func)
+                                return func.Call(interpreter, new() { right });
+
+                        return null;
+                    }
+
+                case TokenType.Slash:
+                    {
+                        IPropable prop = GetPropable(left);
+                        if (prop != null)
+                            if (prop.Get(OPERATOR_DIVIDE) is ICallable func)
+                                return func.Call(interpreter, new() { right });
+
+                        return null;
+                    }
+
+                case TokenType.Greater:
+                    {
+                        IPropable prop = GetPropable(left);
+                        if (prop != null)
+                            if (prop.Get(OPERATOR_GREATER) is ICallable func)
+                                return Truthy(func.Call(interpreter, new() { right }));
+
+                        return null;
+                    }
+
+                case TokenType.Greater_Equal:
+                    {
+                        IPropable prop = GetPropable(left);
+                        if (prop != null)
+                            if (prop.Get(OPERATOR_GREATER) is ICallable func)
+                                return Truthy(func.Call(interpreter, new() { right })) || Equal(left, right);
+
+                        return null;
+                    }
+
+                case TokenType.Less:
+                    {
+                        IPropable prop = GetPropable(left);
+                        if (prop != null)
+                            if (prop.Get(OPERATOR_LESS) is ICallable func)
+                                return Truthy(func.Call(interpreter, new() { right }));
+
+                        return null;
+                    }
+
+                case TokenType.Less_Equal:
+                    {
+                        IPropable prop = GetPropable(left);
+                        if (prop != null)
+                            if (prop.Get(OPERATOR_LESS) is ICallable func)
+                                return Truthy(func.Call(interpreter, new() { right })) || Equal(left, right);
+
+                        return null;
+                    }
+            }
+
+            return null;
+        }
+        public bool Equal(object left, object right)
+        {
+            if (left == null && right == null) return true;
+            if (left == null) return false;
+
+            IPropable prop = GetPropable(left);
+            if (prop != null)
+            {
+                if (prop.Get(OVERRIDE_EQUAL) is ICallable func)
+                    return Truthy(func.Call(interpreter, new() { right }));
+            }
+
+            return left.Equals(right);
+        }
+        public object LogicalCompare(object left, object right)
+        {
+            return Truthy(left) ? left : right;
+        }
+        public IPropable GetPropable(object obj)
+        {
+            if (obj == null) return null;
+            if (obj is IPropable p) return p;
+
+            if (obj is string s) return new StringPropMap(s);
+            if (obj is double d) return new DoublePropMap(d);
+            if (obj is bool b) return new BoolPropMap(b);
+            if (obj is List<object> l) return new ListPropMap(l);
+
+            return new AutoPropMap(obj);
+        }
+        public bool Truthy(object obj)
+        {
+            if (obj == null) return false;
+            if (obj is bool b) return b;
+            if (obj is double d) return d > 0;
+            if (obj is IEnumerable<object> l) return l.Any();
+            if (obj is string s) return s.Length > 0;
+            return true;
+        }
+
+        public string Stringify(object obj)
+        {
+            IPropable prop = GetPropable(obj);
+            if (prop != null)
+            {
+                if (prop.Get(OVERRIDE_STRINGIFY) is ICallable func)
+                    return func.Call(interpreter, new(0)).ToString();
+            }
+
+            return obj?.ToString();
+        }
+
+        public List<object> GetIterator(object obj)
+        {
+            IPropable prop = GetPropable(obj);
+            if (prop != null)
+            {
+                if (prop.Get(OVERRIDE_ITERATOR) is ICallable func)
+                    return (List<object>)func.Call(interpreter, new(0));
+            }
+
+            return null;
+        }
+
+        public object GetIndex(object obj, object ind)
+        {
+            IPropable prop = GetPropable(obj);
+            if (prop != null)
+            {
+                if (prop.Get(OVERRIDE_INDEX) is ICallable func)
+                    return func.Call(interpreter, new() { ind });
+
+                if (ind is double d)
+                    return GetIterator(obj)[GetInt(d)];
+            }
+
+            return null;
+        }
+
+        public int GetInt(double d)
+        {
+            try
+            {
+                return Convert.ToInt32(d);
+            }
+            catch (OverflowException)
+            {
+                return 0;
+            }
+        }
+    }
 }

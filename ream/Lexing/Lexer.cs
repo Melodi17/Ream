@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using Ream.Interpreting;
+//using Ream.Interpreting.Features;
 
 namespace Ream.Lexing
 {
@@ -23,7 +25,6 @@ namespace Ream.Lexing
             { "local", TokenType.Local },
             { "dynamic", TokenType.Dynamic },
             { "final", TokenType.Final },
-            { "initializer", TokenType.Initializer },
             { "static", TokenType.Static },
             { "return", TokenType.Return },
             { "null", TokenType.Null },
@@ -31,10 +32,8 @@ namespace Ream.Lexing
             { "this", TokenType.This },
             { "true", TokenType.True },
             { "false", TokenType.False },
-            { "print", TokenType.Print },
             { "import", TokenType.Import },
             { "evaluate", TokenType.Evaluate },
-            { "thread", TokenType.Thread },
         };
 
         public Lexer(string source)
@@ -77,7 +76,14 @@ namespace Ream.Lexing
                 case '=': AddToken(Match('=') ? TokenType.Equal_Equal : TokenType.Equal); break;
                 case '!': AddToken(Match('=') ? TokenType.Not_Equal : TokenType.Not); break;
                 case '>': AddToken(Match('=') ? TokenType.Greater_Equal : TokenType.Greater); break;
-                case '<': AddToken(Match('=') ? TokenType.Less_Equal : TokenType.Less); break;
+                case '<':
+                    if (Match('='))
+                        AddToken(TokenType.Less_Equal);
+                    else if (Match('>'))
+                        AddToken(TokenType.Prototype, new Prototype());
+                    else
+                        AddToken(TokenType.Less);
+                    break;
                 case '+': AddToken(Match('=') ? TokenType.Plus_Equal : TokenType.Plus); break;
                 case '-': AddToken(Match('=') ? TokenType.Minus_Equal : TokenType.Minus); break;
                 case '*': AddToken(Match('=') ? TokenType.Star_Equal : TokenType.Star); break;
@@ -117,7 +123,7 @@ namespace Ream.Lexing
                 default:
                     if (char.IsDigit(c))
                         HandleInterger();
-                    else if (char.IsLetterOrDigit(c) | c == '_')
+                    else if (ValidIdentifierChar(c))
                         HandleIdentifier();
                     else
                     {
@@ -233,7 +239,7 @@ namespace Ream.Lexing
             AddToken(type);
         }
         private bool ValidIdentifierChar(char c)
-            => char.IsLetterOrDigit(c) || c == '_';
+            => char.IsLetterOrDigit(c) || c == '_' || c == '~';
     }
 
     public static class Extensions

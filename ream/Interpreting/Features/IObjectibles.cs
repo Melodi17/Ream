@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using Ream.Interpreting;
 using Ream.Lexing;
 using Ream.SDK;
 
@@ -116,19 +117,18 @@ namespace Ream.Interpreting
             staticScope = new();
 
             GetNonStaticInitializer = x =>
-                scope.GetData(x.Key).Type.HasFlag(VariableType.Initializer);
+                x.Key == Resolver.OVERRIDE_INSTANCE;
 
             GetStaticInitializer = x =>
             {
                 VariableType type = staticScope.GetData(x.Key).Type;
 
-                return type.HasFlag(VariableType.Initializer)
+                return x.Key == Resolver.OVERRIDE_INSTANCE
                     && type.HasFlag(VariableType.Static);
             };
 
             Type = type;
             ExternalFunction[] functions = Type.GetMethods()
-                .Where(x => x.GetCustomAttribute<ExternalFunctionAttribute>() != null)
                 .Select(x => new ExternalFunction(x)).ToArray();
 
             foreach (ExternalFunction function in functions)
@@ -185,7 +185,8 @@ namespace Ream.Interpreting
                 {
                     var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
                     if (attribute == null)
-                        return false;
+                        return x.Name == key.Raw && x.IsStatic();
+
                     return attribute.Name == key.Raw && attribute.Type.HasFlag(VariableType.Static);
                 });
                 if (prop != null)
@@ -195,7 +196,8 @@ namespace Ream.Interpreting
                 {
                     var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
                     if (attribute == null)
-                        return false;
+                        return x.Name == key.Raw && x.IsStatic;
+
                     return attribute.Name == key.Raw && attribute.Type.HasFlag(VariableType.Static);
                 });
                 if (field != null)
@@ -211,7 +213,7 @@ namespace Ream.Interpreting
             {
                 var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
                 if (attribute == null)
-                    return false;
+                    return x.Name == key.Raw && x.IsStatic();
                 return attribute.Name == key.Raw && attribute.Type.HasFlag(VariableType.Static);
             });
             if (prop != null)
@@ -224,7 +226,7 @@ namespace Ream.Interpreting
             {
                 var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
                 if (attribute == null)
-                    return false;
+                    return x.Name == key.Raw && x.IsStatic;
                 return attribute.Name == key.Raw && attribute.Type.HasFlag(VariableType.Static);
             });
             if (field != null)
@@ -269,7 +271,7 @@ namespace Ream.Interpreting
                 {
                     var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
                     if (attribute == null)
-                        return false;
+                        return x.Name == key.Raw && !x.IsStatic();
                     return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
                 });
                 if (prop != null)
@@ -279,7 +281,7 @@ namespace Ream.Interpreting
                 {
                     var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
                     if (attribute == null)
-                        return false;
+                        return x.Name == key.Raw && !x.IsStatic;
                     return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
                 });
                 if (field != null)
@@ -295,7 +297,7 @@ namespace Ream.Interpreting
             {
                 var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
                 if (attribute == null)
-                    return false;
+                    return x.Name == key.Raw && !x.IsStatic();
                 return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
             });
             if (prop != null)
@@ -308,7 +310,7 @@ namespace Ream.Interpreting
             {
                 var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
                 if (attribute == null)
-                    return false;
+                    return x.Name == key.Raw && !x.IsStatic;
                 return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
             });
             if (field != null)

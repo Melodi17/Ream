@@ -264,6 +264,7 @@ namespace Ream.Parsing
             if (Match(TokenType.True)) return new Expr.Literal(true);
             if (Match(TokenType.False)) return new Expr.Literal(false);
             if (Match(TokenType.Null)) return new Expr.Literal(null);
+            if (Match(TokenType.Prototype)) return new Expr.Literal(Previous().Literal);
             if (Match(TokenType.String, TokenType.Interger))
                 return new Expr.Literal(Previous().Literal);
             if (Match(TokenType.Left_Parenthesis))
@@ -381,10 +382,8 @@ namespace Ream.Parsing
         private Stmt Statement()
         {
             if (Match(TokenType.If)) return IfStatement();
-            if (Match(TokenType.Thread)) return ThreadStatement();
             if (Match(TokenType.While)) return WhileStatement();
             if (Match(TokenType.For)) return ForStatement();
-            if (Match(TokenType.Print)) return PrintStatement();
             if (Match(TokenType.Evaluate)) return EvaluateStatement();
             if (Match(TokenType.Import)) return ImportStatement();
             if (Match(TokenType.Return)) return ReturnStatement();
@@ -510,12 +509,6 @@ namespace Ream.Parsing
             InsistEnd();
             return new Stmt.Expression(expr);
         }
-        private Stmt PrintStatement()
-        {
-            Expr value = Expression();
-            InsistEnd();
-            return new Stmt.Print(value);
-        }
         private Stmt EvaluateStatement()
         {
             Expr value = Expression();
@@ -550,13 +543,6 @@ namespace Ream.Parsing
             InsistEnd();
 
             return new Stmt.Script(body);
-        }
-        private Stmt ThreadStatement()
-        {
-            InsistEnd();
-            Stmt body = Statement();
-
-            return new Stmt.Thread(body);
         }
         private Stmt WhileStatement()
         {

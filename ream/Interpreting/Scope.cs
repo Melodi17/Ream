@@ -3,6 +3,38 @@ using Ream.SDK;
 
 namespace Ream.Interpreting
 {
+    public class Pointer : IPropable
+    {
+        private static Dictionary<int, object> Memory = new();
+        private static int nextKey = 0;
+
+        private int key;
+        public Pointer(int key)
+        {
+            this.key = key;
+        }
+        public Pointer(object value)
+        {
+            this.key = nextKey++;
+            Memory[this.key] = value;
+        }
+        public void Dispose()
+        {
+            Memory.Remove(this.key);
+        }
+        public object Get()
+        {
+            return Memory.ContainsKey(this.key) ? Memory[this.key] : null;
+        }
+        public void Set(object obj)
+        {
+            if (Memory.ContainsKey(this.key))
+                Memory[this.key] = obj;
+        }
+        public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal) => manualType;
+        public object Get(Token key) => null;
+        public void Set(Token key, object value, VariableType type = VariableType.Normal) { }
+    }
     public class Scope
     {
         public bool HasParent => Parent != null;
@@ -29,7 +61,7 @@ namespace Ream.Interpreting
         {
             VariableType type = manualType.HasFlag(VariableType.Normal)
                 ? GetData(key)?.Type ?? manualType : manualType;
-            
+
             return type;
         }
         public void Set(Token key, object value, VariableType manualType = VariableType.Normal)
@@ -84,55 +116,6 @@ namespace Ream.Interpreting
                 }
             }
         }
-        public void Dispose(string key, VariableType manualType = VariableType.Normal)
-        {
-            VariableType type = AutoDetectType(key, manualType);
-
-            // Variable is not null and is readonly, so it cannot be changed
-            if (Get(key) != null && GetData(key).Type.HasFlag(VariableType.Final))
-                return;
-
-            if (type.HasFlag(VariableType.Global))
-            {
-                if (HasParent)
-                {
-                    Global.Dispose(key, type);
-                }
-                else
-                {
-                    Values.Remove(key);
-                    VariableData.Remove(key);
-                }
-            }
-            else if (type.HasFlag(VariableType.Local))
-            {
-                Values.Remove(key);
-                VariableData.Remove(key);
-            }
-            else
-            {
-                // If it exists locally
-                if (Has(key, false))
-                {
-                    Values.Remove(key);
-                    VariableData.Remove(key);
-                }
-                else
-                {
-                    // If it exists anywhere
-                    if (Has(key, true))
-                    {
-                        // Recall
-                        Parent.Dispose(key, type);
-                    }
-                    else
-                    {
-                        // We need to report this
-                        throw new RuntimeError("", "Specified key was not present, unable to be disposed");
-                    }
-                }
-            }
-        }
         public bool Has(string key, bool canCheckParent = true)
         {
             bool has = Values.ContainsKey(key);
@@ -172,26 +155,6 @@ namespace Ream.Interpreting
             //throw new RuntimeError(key, $"Undefined variable '{keyName}'"); // return null instead
             return null;
         }
-
-        //public void SetAt(int dist, Token name, object value)
-        //{
-        //    Ancestor(dist).Values[name.Raw] = value;
-        //}
-        //public object GetAt(int dist, string name)
-        //{
-        //    return Ancestor(dist).Values[name];
-        //}
-
-        //public Scope Ancestor(int dist)
-        //{
-        //    Scope scope = this;
-        //    for (int i = 0; i < dist; i++)
-        //    {
-        //        scope = scope.Parent;
-        //    }
-
-        //    return scope;
-        //}
 
         public Dictionary<string, object> All()
             => Values;

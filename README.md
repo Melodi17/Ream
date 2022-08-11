@@ -353,3 +353,16 @@ Import it with the following, don't add the .dll on the end as it is automatical
 import <mylib>
 ```
 
+
+
+### Prototypes
+
+A prototype is like a cross between a dictionary and a class. They can have unlimited variables within them but can only be assigned as keywords like so:
+
+```ream
+x = <>
+x.myvar = "some text"
+print(x.myvar)
+```
+
+ 

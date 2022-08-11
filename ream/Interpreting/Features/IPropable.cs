@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+//using Ream.Interpreting.Features;
 using Ream.Lexing;
 using Ream.SDK;
 using Ream.Tools;
@@ -11,7 +12,6 @@ namespace Ream.Interpreting
         public void Set(Token key, object value, VariableType type = VariableType.Normal);
         public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal);
     }
-
     public class StringPropMap : IPropable
     {
         public readonly string Value;
@@ -34,6 +34,71 @@ namespace Ream.Interpreting
                 "Lower" => new ExternalFunction((i, j) => Value.ToLower(), 0),
                 "Upper" => new ExternalFunction((i, j) => Value.ToUpper(), 0),
                 "Split" => new ExternalFunction((i, j) => Value.Split(j[0].ToString()).ToList<object>(), 1),
+                Resolver.OVERRIDE_STRINGIFY => new ExternalFunction((i, j) => Value, 0),
+                Resolver.OVERRIDE_INDEX => new ExternalFunction((i, j) => j[0] is double d ? Value.ElementAtOrDefault(Program.Interpreter.resolver.GetInt(d)) : null, 0),
+                Resolver.OVERRIDE_ITERATOR => new ExternalFunction((i, j) => Value.ToCharArray().Select(x => (object)x.ToString()).ToList(), 0),
+                Resolver.OPERATOR_ADD => new ExternalFunction((i, j) => Value + Program.Interpreter.resolver.Stringify(j[0]), 1),
+                Resolver.OPERATOR_MULTIPLY => new ExternalFunction((i, j) => j[0] is double d ? string.Join("", Enumerable.Repeat(Value, Program.Interpreter.resolver.GetInt(d))) : null, 1),
+                _ => null,
+            };
+        }
+
+        public void Set(Token key, object value, VariableType type = VariableType.Normal) { }
+    }
+    public class DoublePropMap : IPropable
+    {
+        public readonly double Value;
+        public DoublePropMap(double value)
+        {
+            Value = value;
+        }
+        public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal)
+            => manualType;
+
+        public object Get(Token key)
+        {
+            return key.Raw switch
+            {
+                Resolver.OVERRIDE_STRINGIFY => new ExternalFunction((i, j) => {
+                    string text = Value.ToString();
+                    if (text.EndsWith(".0"))
+                        text = text[..^2];
+                    return text;
+                }, 0),
+                Resolver.OVERRIDE_ITERATOR => new ExternalFunction((i, j) => Enumerable.Range(0, Program.Interpreter.resolver.GetInt(Value)).Select(x => (object)Convert.ToDouble(x)).ToList(), 0),
+                Resolver.OVERRIDE_INDEX => new ExternalFunction((i, j) => j[0], 1),
+                Resolver.OPERATOR_ADD => new ExternalFunction((i, j) => j[0] is double d ? Value + d : null, 1),
+                Resolver.OPERATOR_SUBTRACT => new ExternalFunction((i, j) => j[0] is double d ? Value - d : null, 1),
+                Resolver.OPERATOR_MULTIPLY => new ExternalFunction((i, j) => j[0] is double d ? Value * d : null, 1),
+                Resolver.OPERATOR_DIVIDE => new ExternalFunction((i, j) => j[0] is double d 
+                ? d == 0 
+                    ? 0D 
+                    : Value / d 
+                : null, 1),
+                Resolver.OPERATOR_GREATER => new ExternalFunction((i, j) => j[0] is double d ? Value > d : null, 1),
+                Resolver.OPERATOR_LESS => new ExternalFunction((i, j) => j[0] is double d ? Value < d : null, 1),
+                _ => null,
+            };
+        }
+
+        public void Set(Token key, object value, VariableType type = VariableType.Normal) { }
+    }
+    public class BoolPropMap : IPropable
+    {
+        public readonly bool Value;
+        public BoolPropMap(bool value)
+        {
+            Value = value;
+        }
+        public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal)
+            => manualType;
+
+        public object Get(Token key)
+        {
+            return key.Raw switch
+            {
+                "Alt" => !Value,
+                Resolver.OVERRIDE_STRINGIFY => new ExternalFunction((i, j) => Value ? "true" : "false", 0),
                 _ => null,
             };
         }
@@ -56,12 +121,15 @@ namespace Ream.Interpreting
             {
                 "Length" => (double)Value.Count,
                 "Contains" => new ExternalFunction((i, j) => Value.Contains(j[0]), 1),
-                "Add" => new ExternalFunction((i, j) => { Value.Add(j[0]); return null; }, 1),
+                "Add" => new ExternalFunction((i, j) => { Value.Add(j[0]); return j[0]; }, 1),
                 "Insert" => new ExternalFunction((i, j) => { Value.Insert(((double)j[0]).ToInt(), j[1]); return null; }, 1),
                 "Remove" => new ExternalFunction((i, j) => Value.Remove(j[0]), 1),
                 "Delete" => new ExternalFunction((i, j) => { Value.RemoveAt(((double)j[0]).ToInt()); return null; }, 1),
                 "Index" => new ExternalFunction((i, j) => (double)Value.IndexOf(((double)j[0]).ToInt()), 1),
                 "Join" => new ExternalFunction((i, j) => string.Join(j[0].ToString(), Value), 1),
+                Resolver.OVERRIDE_STRINGIFY => new ExternalFunction((i, j) => "[" + string.Join(", ", Value.Select(x => Program.Interpreter.resolver.Stringify(x))) + "]", 0),
+                Resolver.OVERRIDE_INDEX => new ExternalFunction((i, j) => j[0] is double d ? Value.ElementAtOrDefault(Program.Interpreter.resolver.GetInt(d)) : null, 0),
+                Resolver.OVERRIDE_ITERATOR => new ExternalFunction((i, j) => Value, 0),
                 _ => null,
             };
         }
@@ -106,6 +174,13 @@ namespace Ream.Interpreting
 
         public object Get(Token key)
         {
+            switch (key.Raw)
+            {
+                case Resolver.OVERRIDE_EQUAL: return new ExternalFunction((i, j) => InternalValue.Equals(j[0]), 1);
+                case Resolver.OVERRIDE_STRINGIFY: return new ExternalFunction((i, j) => InternalValue.ToString(), 0);
+                case Resolver.OVERRIDE_ITERATOR: return new ExternalFunction((i, j) => InternalValue is IEnumerable<object> l ? l.ToList() : null, 0);
+            }
+
             PropertyInfo prop = Type.GetProperties().FirstOrDefault(x =>
             {
                 var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
@@ -156,6 +231,39 @@ namespace Ream.Interpreting
                 field.SetValue(InternalValue, value);
                 return;
             }
+        }
+    }
+
+    public class Prototype : IPropable
+    {
+        private readonly Dictionary<string, object> Values;
+        public Prototype()
+        {
+            Values = new Dictionary<string, object>();
+        }
+        public void Set(string key, object value)
+        {
+            Values[key] = value;
+        }
+
+        public object Get(string key)
+        {
+            return Values.ContainsKey(key) ? Values[key] : null;
+        }
+
+        public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal)
+        {
+            return VariableType.Normal;
+        }
+
+        public object Get(Token key)
+        {
+            return Get(key.Raw);
+        }
+
+        public void Set(Token key, object value, VariableType type = VariableType.Normal)
+        {
+            Set(key.Raw, value);
         }
     }
 }
