@@ -33,10 +33,9 @@ namespace Ream.Interpreting
         public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal) => manualType;
         public object Get(Token key) => null;
         public void Set(Token key, object value, VariableType type = VariableType.Normal) { }
-        public static int GetPointerCount()
-        {
-            return Memory.Count;
-        }
+        public static int GetPointerCount() => Memory.Count;
+
+        public override string ToString() => $"pointer to {this.key}";
     }
     public class Scope
     {
@@ -149,6 +148,21 @@ namespace Ream.Interpreting
 
             // If can't be found locally and has a parent to check
             if (HasParent) return Parent.Get(key);
+
+            //throw new RuntimeError(key, $"Undefined variable '{keyName}'"); // return null instead
+            return null;
+        }
+
+        public object GetPointer(Token key)
+        {
+            string keyName = key.Raw;
+
+            // If can be found locally
+            if (Values.ContainsKey(keyName))
+                return Values[keyName];
+
+            // If can't be found locally and has a parent to check
+            if (HasParent) return Parent.GetPointer(key);
 
             //throw new RuntimeError(key, $"Undefined variable '{keyName}'"); // return null instead
             return null;

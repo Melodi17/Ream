@@ -18,14 +18,15 @@ namespace Ream.Interpreting
             this.Name = name;
             this.Scope = scope;
             this.StaticScope = staticScope;
+
             GetNonStaticInitializer = x =>
-                Scope.GetData(x.Key).Type.HasFlag(VariableType.Initializer);
+                x.Key == Resolver.OVERRIDE_INSTANCE;
 
             GetStaticInitializer = x =>
             {
-                VariableType type = StaticScope.GetData(x.Key).Type;
+                VariableType type = staticScope.GetData(x.Key).Type;
 
-                return type.HasFlag(VariableType.Initializer)
+                return x.Key == Resolver.OVERRIDE_INSTANCE
                     && type.HasFlag(VariableType.Static);
             };
 

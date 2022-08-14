@@ -34,6 +34,7 @@ namespace Ream.Interpreting
                 "Lower" => new ExternalFunction((i, j) => Value.ToLower(), 0),
                 "Upper" => new ExternalFunction((i, j) => Value.ToUpper(), 0),
                 "Split" => new ExternalFunction((i, j) => Value.Split(j[0].ToString()).ToList<object>(), 1),
+
                 Resolver.OVERRIDE_STRINGIFY => new ExternalFunction((i, j) => Value, 0),
                 Resolver.OVERRIDE_INDEX => new ExternalFunction((i, j) => j[0] is double d ? Value.ElementAtOrDefault(Program.Interpreter.resolver.GetInt(d)) : null, 0),
                 Resolver.OVERRIDE_ITERATOR => new ExternalFunction((i, j) => Value.ToCharArray().Select(x => (object)x.ToString()).ToList(), 0),
@@ -59,7 +60,8 @@ namespace Ream.Interpreting
         {
             return key.Raw switch
             {
-                Resolver.OVERRIDE_STRINGIFY => new ExternalFunction((i, j) => {
+                Resolver.OVERRIDE_STRINGIFY => new ExternalFunction((i, j) =>
+                {
                     string text = Value.ToString();
                     if (text.EndsWith(".0"))
                         text = text[..^2];
@@ -70,10 +72,10 @@ namespace Ream.Interpreting
                 Resolver.OPERATOR_ADD => new ExternalFunction((i, j) => j[0] is double d ? Value + d : null, 1),
                 Resolver.OPERATOR_SUBTRACT => new ExternalFunction((i, j) => j[0] is double d ? Value - d : null, 1),
                 Resolver.OPERATOR_MULTIPLY => new ExternalFunction((i, j) => j[0] is double d ? Value * d : null, 1),
-                Resolver.OPERATOR_DIVIDE => new ExternalFunction((i, j) => j[0] is double d 
-                ? d == 0 
-                    ? 0D 
-                    : Value / d 
+                Resolver.OPERATOR_DIVIDE => new ExternalFunction((i, j) => j[0] is double d
+                ? d == 0
+                    ? 0D
+                    : Value / d
                 : null, 1),
                 Resolver.OPERATOR_GREATER => new ExternalFunction((i, j) => j[0] is double d ? Value > d : null, 1),
                 Resolver.OPERATOR_LESS => new ExternalFunction((i, j) => j[0] is double d ? Value < d : null, 1),
@@ -125,10 +127,23 @@ namespace Ream.Interpreting
                 "Insert" => new ExternalFunction((i, j) => { Value.Insert(((double)j[0]).ToInt(), j[1]); return null; }, 1),
                 "Remove" => new ExternalFunction((i, j) => Value.Remove(j[0]), 1),
                 "Delete" => new ExternalFunction((i, j) => { Value.RemoveAt(((double)j[0]).ToInt()); return null; }, 1),
-                "Index" => new ExternalFunction((i, j) => (double)Value.IndexOf(((double)j[0]).ToInt()), 1),
+                "Index" => new ExternalFunction((i, j) => (double)Value.IndexOf(j[0]), 1),
                 "Join" => new ExternalFunction((i, j) => string.Join(j[0].ToString(), Value), 1),
                 Resolver.OVERRIDE_STRINGIFY => new ExternalFunction((i, j) => "[" + string.Join(", ", Value.Select(x => Program.Interpreter.resolver.Stringify(x))) + "]", 0),
                 Resolver.OVERRIDE_INDEX => new ExternalFunction((i, j) => j[0] is double d ? Value.ElementAtOrDefault(Program.Interpreter.resolver.GetInt(d)) : null, 0),
+                Resolver.OVERRIDE_MIX => new ExternalFunction((i, j) =>
+                {
+                    if (j[0] is double d)
+                    {
+                        int index = Program.Interpreter.resolver.GetInt(d);
+                        if (index >= 0 && index < Value.Count)
+                            return Value[index] = j[1];
+                        else
+                            return null;
+                    }
+                    else
+                        return null;
+                }, 0),
                 Resolver.OVERRIDE_ITERATOR => new ExternalFunction((i, j) => Value, 0),
                 _ => null,
             };

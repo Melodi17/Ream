@@ -13,6 +13,7 @@ namespace Ream.Interpreting
         public const string OVERRIDE_STRINGIFY = "~string";
         public const string OVERRIDE_ITERATOR = "~iterator";
         public const string OVERRIDE_INDEX = "~index";
+        public const string OVERRIDE_MIX = "~mix";
         public const string OVERRIDE_INSTANCE = "~instance";
         public const string OVERRIDE_EQUAL = "~equal";
 
@@ -186,6 +187,21 @@ namespace Ream.Interpreting
             {
                 if (prop.Get(OVERRIDE_INDEX) is ICallable func)
                     return func.Call(interpreter, new() { ind });
+
+                if (ind is double d)
+                    return GetIterator(obj)[GetInt(d)];
+            }
+
+            return null;
+        }
+
+        public object GetMix(object obj, object ind, object value)
+        {
+            IPropable prop = GetPropable(obj);
+            if (prop != null)
+            {
+                if (prop.Get(OVERRIDE_MIX) is ICallable func)
+                    return func.Call(interpreter, new() { ind, value });
 
                 if (ind is double d)
                     return GetIterator(obj)[GetInt(d)];

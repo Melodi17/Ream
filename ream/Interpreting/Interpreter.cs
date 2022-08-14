@@ -1,4 +1,5 @@
-﻿using Ream.Lexing;
+﻿using System.Reflection;
+using Ream.Lexing;
 using Ream.Parsing;
 using Ream.SDK;
 
@@ -16,6 +17,7 @@ namespace Ream.Interpreting
             resolver = new(this);
 
             Globals.Define("print", new ExternalFunction((i, j) => { Console.WriteLine(resolver.Stringify(j[0])); return null; }, 0));
+            Globals.Define("dispose", new ExternalFunction((i, j) => { if (j[0] is Pointer p) p.Dispose(); return null; }, 0));
         }
 
         public void Interpret(List<Stmt> statements)
@@ -69,6 +71,14 @@ namespace Ream.Interpreting
 
             scope.Set(name, value, type);
             return value;
+        }
+        public void LoadAssemblyLibrary(Assembly asm)
+        {
+            foreach (Type type in asm.GetTypes()
+                .Where(x => x.GetCustomAttribute<ExternalClassAttribute>() != null))
+            {
+                Globals.Define(type.Name, new ExternalClass(type, this), VariableType.Global);
+            }
         }
 
         public object VisitAssignExpr(Expr.Assign expr)
@@ -169,6 +179,7 @@ namespace Ream.Interpreting
         public object VisitGetExpr(Expr.Get expr)
         {
             IPropable prop = resolver.GetPropable(Evaluate(expr.obj));
+            if (prop == null) return null;
             return prop.Get(expr.name);
         }
         public object VisitGroupingExpr(Expr.Grouping expr)
@@ -186,7 +197,33 @@ namespace Ream.Interpreting
         }
         public object VisitImportStmt(Stmt.Import stmt)
         {
-            throw new NotImplementedException();
+            string dllPath = stmt.name.Raw + ".dll";
+            string dllLibDataPath = Path.Join(Program.LibDataPath, dllPath);
+            if (File.Exists(dllPath))
+            {
+                Assembly asm = Assembly.LoadFrom(dllPath);
+                LoadAssemblyLibrary(asm);
+            }
+            else if (File.Exists(dllLibDataPath))
+            {
+                Assembly asm = Assembly.LoadFrom(dllLibDataPath);
+                LoadAssemblyLibrary(asm);
+            }
+            else
+            {
+                string reamPath = stmt.name.Raw + ".r";
+                string reamLibDataPath = Path.Join(Program.LibDataPath, reamPath);
+                if (File.Exists(reamPath))
+                {
+                    Program.RunFile(reamPath);
+                }
+                else if (File.Exists(reamLibDataPath))
+                {
+                    Program.RunFile(reamLibDataPath);
+                }
+            }
+
+            return null;
         }
         public object VisitIndexerExpr(Expr.Indexer expr)
         {
@@ -218,6 +255,18 @@ namespace Ream.Interpreting
 
             return Evaluate(expr.right);
         }
+        public object VisitMixerExpr(Expr.Mixer expr)
+        {
+            return resolver.GetMix(Evaluate(expr.callee), Evaluate(expr.index), Evaluate(expr.value));
+        }
+        public object VisitTranslateExpr(Expr.Translate expr)
+        {
+            return expr.@operator.Type switch
+            {
+                TokenType.Ampersand => scope.GetPointer(expr.name),
+                _ => null
+            };
+        }
         public object VisitReturnStmt(Stmt.Return stmt)
         {
             object value = null;
@@ -237,6 +286,7 @@ namespace Ream.Interpreting
         public object VisitSetExpr(Expr.Set expr)
         {
             IPropable prop = resolver.GetPropable(Evaluate(expr.obj));
+            if (prop == null) return null;
 
             VariableType type = prop.AutoDetectType(expr.name);
             object value = type.HasFlag(VariableType.Dynamic)
@@ -262,6 +312,7 @@ namespace Ream.Interpreting
             {
                 TokenType.Not => !resolver.Truthy(right),
                 TokenType.Minus => right is double d ? -(double)d : null,
+                TokenType.Pipe => right is Pointer p ? p.Get() : null,
                 _ => null,
             };
         }

@@ -13,6 +13,7 @@ namespace Ream.Parsing
          public T VisitBinaryExpr(Binary expr);
          public T VisitCallExpr(Call expr);
          public T VisitIndexerExpr(Indexer expr);
+         public T VisitMixerExpr(Mixer expr);
          public T VisitGetExpr(Get expr);
          public T VisitGroupingExpr(Grouping expr);
          public T VisitSequenceExpr(Sequence expr);
@@ -22,6 +23,7 @@ namespace Ream.Parsing
          public T VisitSetExpr(Set expr);
          public T VisitThisExpr(This expr);
          public T VisitUnaryExpr(Unary expr);
+         public T VisitTranslateExpr(Translate expr);
          public T VisitVariableExpr(Variable expr);
      }
      [Serializable] public class Assign : Expr
@@ -95,6 +97,27 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitIndexerExpr(this);
+          }
+      }
+
+     [Serializable] public class Mixer : Expr
+      {
+     public readonly Expr callee;
+     public readonly Token paren;
+     public readonly Expr index;
+     public readonly Expr value;
+
+         public Mixer(Expr callee, Token paren, Expr index, Expr value)
+          {
+             this.callee = callee;
+             this.paren = paren;
+             this.index = index;
+             this.value = value;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitMixerExpr(this);
           }
       }
 
@@ -244,6 +267,23 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitUnaryExpr(this);
+          }
+      }
+
+     [Serializable] public class Translate : Expr
+      {
+     public readonly Token @operator;
+     public readonly Token name;
+
+         public Translate(Token @operator, Token name)
+          {
+             this.@operator = @operator;
+             this.name = name;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitTranslateExpr(this);
           }
       }
 
