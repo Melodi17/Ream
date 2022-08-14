@@ -15,6 +15,8 @@ Main.WriteLine('Hello World!')
 
 ## Syntax
 
+**Warning:** This documentation is not up-to-date, an update will be out shortly
+
 **Warning:** Syntax is still subject to change
 
 ### Built in
