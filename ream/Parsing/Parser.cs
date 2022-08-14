@@ -49,18 +49,20 @@ namespace Ream.Parsing
                 Token eq = Previous();
                 Expr value = ExprAssignment();
 
-                if (expr is Expr.Variable)
+                if (expr is Expr.Variable variable)
                 {
-                    Token name = ((Expr.Variable)expr).name;
-                    return new Expr.Assign(name, value);
+                    return new Expr.Assign(variable.name, value);
                 }
-                else if (expr is Expr.Get)
+                else if (expr is Expr.Get get)
                 {
-                    Expr.Get get = expr as Expr.Get;
                     return new Expr.Set(get.obj, get.name, value);
                 }
+                else if (expr is Expr.Indexer indexer)
+                {
+                    return new Expr.Mixer(indexer.callee, indexer.paren, indexer.index, value);
+                }
 
-                Error(eq, "Invalid assignment target");
+                Error(eq, $"Invalid assignment target {expr.GetType().Name}");
             }
 
             return expr;
@@ -145,11 +147,18 @@ namespace Ream.Parsing
         }
         private Expr ExprUnary()
         {
-            if (Match(TokenType.Not, TokenType.Minus))
+            if (Match(TokenType.Not, TokenType.Minus, TokenType.Pipe))
             {
                 Token op = Previous();
                 Expr right = ExprUnary();
                 return new Expr.Unary(op, right);
+            }
+
+            if (Match(TokenType.Ampersand))
+            {
+                Token op = Previous();
+                Token name = Consume(TokenType.Identifier, "Expected identifier after translator");
+                return new Expr.Translate(op, name);
             }
 
             return ExprCall();
@@ -489,8 +498,7 @@ namespace Ream.Parsing
                     {
                         dat |= Advance().Type.ToVariableType();
                     }
-                    functions.Add(FunctionDeclaration(dat, dat.HasFlag(VariableType.Initializer) ?
-                        dat.HasFlag(VariableType.Static) ? "StaticInitializer" : "Initializer" : "") as Stmt.Function);
+                    functions.Add(FunctionDeclaration(dat) as Stmt.Function);
                 }
                 else
                 {

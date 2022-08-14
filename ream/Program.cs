@@ -50,20 +50,22 @@ namespace Ream
         {
             ASTGenerator.DefineAst(Path.Join("..", "..", "..", "Parsing", "ASTExpr.cs"), "Expr", new string[]
             {
-                "Assign   : Token name, Expr value",
-                "Binary   : Expr left, Token @operator, Expr right",
-                "Call     : Expr callee, Token paren, List<Expr> arguments",
-                "Indexer  : Expr callee, Token paren, Expr index",
-                "Get      : Expr obj, Token name",
-                "Grouping : Expr expression",
-                "Sequence : List<Expr> items",
-                "Lambda   : List<Token> parameters, List<Stmt> body",
-                "Literal  : Object value",
-                "Logical  : Expr left, Token @operator, Expr right",
-                "Set      : Expr obj, Token name, Expr value",
-                "This     : Token keyword",
-                "Unary    : Token @operator, Expr right",
-                "Variable : Token name"
+                "Assign    : Token name, Expr value",
+                "Binary    : Expr left, Token @operator, Expr right",
+                "Call      : Expr callee, Token paren, List<Expr> arguments",
+                "Indexer   : Expr callee, Token paren, Expr index",
+                "Mixer     : Expr callee, Token paren, Expr index, Expr value",
+                "Get       : Expr obj, Token name",
+                "Grouping  : Expr expression",
+                "Sequence  : List<Expr> items",
+                "Lambda    : List<Token> parameters, List<Stmt> body",
+                "Literal   : Object value",
+                "Logical   : Expr left, Token @operator, Expr right",
+                "Set       : Expr obj, Token name, Expr value",
+                "This      : Token keyword",
+                "Unary     : Token @operator, Expr right",
+                "Translate : Token @operator, Token name",
+                "Variable  : Token name"
             }.ToList());
 
             ASTGenerator.DefineAst(Path.Join("..", "..", "..", "Interpreting", "Stmt.cs"), "Stmt", new string[]
@@ -73,7 +75,6 @@ namespace Ream
                 "Expression : Expr expression",
                 "Function   : Token name, VariableType type, List<Token> parameters, List<Stmt> body",
                 "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
-                "Thread     : Stmt body",
                 "Return     : Token keyword, Expr value",
                 "Typed      : Token name, Expr initializer, VariableType type",
                 "While      : Expr condition, Stmt body",
@@ -121,6 +122,7 @@ namespace Ream
             if (ErrorOccured) return;
 
             Interpreter.Interpret(statements);
+            //Console.WriteLine("Pointer count: " + Pointer.GetPointerCount());
             //Console.WriteLine(new ASTPrinter().Print(expression));
         }
         public static void Compile(string sourceFile, string destinationFile)
