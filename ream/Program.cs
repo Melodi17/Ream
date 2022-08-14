@@ -52,6 +52,7 @@ namespace Ream
             {
                 "Assign    : Token name, Expr value",
                 "Binary    : Expr left, Token @operator, Expr right",
+                "Ternary   : Expr left, Token leftOperator, Expr middle, Token rightOperator, Expr right",
                 "Call      : Expr callee, Token paren, List<Expr> arguments",
                 "Indexer   : Expr callee, Token paren, Expr index",
                 "Mixer     : Expr callee, Token paren, Expr index, Expr value",

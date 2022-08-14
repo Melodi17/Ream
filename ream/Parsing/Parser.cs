@@ -42,7 +42,7 @@ namespace Ream.Parsing
         }
         private Expr ExprAssignment()
         {
-            Expr expr = ExprOr();
+            Expr expr = ExprTernary();
 
             if (Match(TokenType.Equal))
             {
@@ -63,6 +63,21 @@ namespace Ream.Parsing
                 }
 
                 Error(eq, $"Invalid assignment target {expr.GetType().Name}");
+            }
+
+            return expr;
+        }
+        private Expr ExprTernary()
+        {
+            Expr expr = ExprOr();
+
+            if (Match(TokenType.Question))
+            {
+                Token leftOperator = Previous();
+                Expr middle = Expression();
+                Token rightOperator = Consume(TokenType.Colon, "Expected ':' in ternary operator");
+                Expr right = Expression();
+                expr = new Expr.Ternary(expr, leftOperator, middle, rightOperator, right);
             }
 
             return expr;

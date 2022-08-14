@@ -259,6 +259,19 @@ namespace Ream.Interpreting
         {
             return resolver.GetMix(Evaluate(expr.callee), Evaluate(expr.index), Evaluate(expr.value));
         }
+        public object VisitTernaryExpr(Expr.Ternary expr)
+        {
+            if (expr.leftOperator.Type == TokenType.Question &&
+                expr.rightOperator.Type == TokenType.Colon)
+            {
+                return Evaluate(resolver.Truthy(Evaluate(expr.left)) ? expr.middle : expr.right);
+            }
+            else
+            {
+                // Should be unreachable
+                return null;
+            }
+        }
         public object VisitTranslateExpr(Expr.Translate expr)
         {
             return expr.@operator.Type switch

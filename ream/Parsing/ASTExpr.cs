@@ -11,6 +11,7 @@ namespace Ream.Parsing
      {
          public T VisitAssignExpr(Assign expr);
          public T VisitBinaryExpr(Binary expr);
+         public T VisitTernaryExpr(Ternary expr);
          public T VisitCallExpr(Call expr);
          public T VisitIndexerExpr(Indexer expr);
          public T VisitMixerExpr(Mixer expr);
@@ -59,6 +60,29 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitBinaryExpr(this);
+          }
+      }
+
+     [Serializable] public class Ternary : Expr
+      {
+     public readonly Expr left;
+     public readonly Token leftOperator;
+     public readonly Expr middle;
+     public readonly Token rightOperator;
+     public readonly Expr right;
+
+         public Ternary(Expr left, Token leftOperator, Expr middle, Token rightOperator, Expr right)
+          {
+             this.left = left;
+             this.leftOperator = leftOperator;
+             this.middle = middle;
+             this.rightOperator = rightOperator;
+             this.right = right;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitTernaryExpr(this);
           }
       }
 

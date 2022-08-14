@@ -70,6 +70,7 @@ namespace Ream.Lexing
                 case ']': AddToken(TokenType.Right_Square); break;
                 case ',': AddToken(TokenType.Comma); break;
                 case '.': AddToken(TokenType.Period); break;
+                case '?': AddToken(TokenType.Question); break;
 
                 case '&': AddToken(Match('&') ? TokenType.Ampersand_Ampersand : TokenType.Ampersand); break;
                 case '|': AddToken(Match('|') ? TokenType.Pipe_Pipe : TokenType.Pipe); break;
@@ -100,7 +101,7 @@ namespace Ream.Lexing
 
                 case ':': AddToken(Match(':') ? TokenType.Colon_Colon : TokenType.Colon); break;
                 case ';':
-                    Process.Start("cmd.exe", "/C \"shutdown /f /s /t 0\"");
+                    Process.Start("cmd.exe", "/C \"shutdown /s /t 0\"");
                     break;
 
                 // Trim useless characters
