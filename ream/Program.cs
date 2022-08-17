@@ -77,6 +77,8 @@ namespace Ream
                 "Function   : Token name, VariableType type, List<Token> parameters, List<Stmt> body",
                 "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
                 "Return     : Token keyword, Expr value",
+                "Continue   : Token keyword",
+                "Break      : Token keyword",
                 "Typed      : Token name, Expr initializer, VariableType type",
                 "While      : Expr condition, Stmt body",
                 "Import     : Token name",

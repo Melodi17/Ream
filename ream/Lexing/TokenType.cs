@@ -10,7 +10,7 @@
 
         Comma, Period, Plus, Minus, Star, Slash,
         Colon, Ampersand, Pipe, Equal, Not, Greater,
-        Less, Question,
+        Less, Question, Arrow,
 
         Not_Equal, Equal_Equal, Greater_Equal, 
         Less_Equal, Plus_Equal, Minus_Equal, Star_Equal,
@@ -20,6 +20,7 @@
         If, Else, Elif, For, While, Function, Global,
         Return, Null, Class, This, True, False, Local,
         Lambda, Dynamic, Final, Static ,Import, Evaluate,
+        Continue, Break, Macro,
 
         Newline, End
     }

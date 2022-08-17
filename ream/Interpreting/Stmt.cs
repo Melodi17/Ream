@@ -15,6 +15,8 @@ namespace Ream.Parsing
          public T VisitFunctionStmt(Function stmt);
          public T VisitIfStmt(If stmt);
          public T VisitReturnStmt(Return stmt);
+         public T VisitContinueStmt(Continue stmt);
+         public T VisitBreakStmt(Break stmt);
          public T VisitTypedStmt(Typed stmt);
          public T VisitWhileStmt(While stmt);
          public T VisitImportStmt(Import stmt);
@@ -123,6 +125,36 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitReturnStmt(this);
+          }
+      }
+
+     [Serializable] public class Continue : Stmt
+      {
+     public readonly Token keyword;
+
+         public Continue(Token keyword)
+          {
+             this.keyword = keyword;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitContinueStmt(this);
+          }
+      }
+
+     [Serializable] public class Break : Stmt
+      {
+     public readonly Token keyword;
+
+         public Break(Token keyword)
+          {
+             this.keyword = keyword;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitBreakStmt(this);
           }
       }
 

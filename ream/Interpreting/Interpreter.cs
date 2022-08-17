@@ -34,7 +34,7 @@ namespace Ream.Interpreting
         }
         private object Evaluate(Expr expr)
         {
-            return expr.Accept(this);
+            return expr?.Accept(this);
         }
         public void ExecuteBlock(List<Stmt> statements, Scope scope)
         {
@@ -57,7 +57,7 @@ namespace Ream.Interpreting
         }
         public void Execute(Stmt stmt)
         {
-            stmt.Accept(this);
+            stmt?.Accept(this);
         }
         public object DeclareStmt(Token name, Expr initializer, VariableType type)
         {
@@ -93,6 +93,10 @@ namespace Ream.Interpreting
         {
             ExecuteBlock(stmt.statements, new Scope(scope));
             return null;
+        }
+        public object VisitBreakStmt(Stmt.Break stmt)
+        {
+            throw new Break();
         }
         public object VisitCallExpr(Expr.Call expr)
         {
@@ -133,6 +137,10 @@ namespace Ream.Interpreting
 
             return null;
         }
+        public object VisitContinueStmt(Stmt.Continue stmt)
+        {
+            throw new Continue();
+        }
         public object VisitEvaluateStmt(Stmt.Evaluate stmt)
         {
             object obj = Evaluate(stmt.value);
@@ -155,7 +163,15 @@ namespace Ream.Interpreting
                     foreach (object item in resolver.GetIterator(Evaluate(stmt.iterator)))
                     {
                         scope.Set(stmt.name, item);
-                        Execute(stmt.body);
+                        try
+                        {
+                            Execute(stmt.body);
+                        }
+                        catch (Break)
+                        {
+                            break;
+                        }
+                        catch (Continue) { /* Don't care */ }
                     }
                     scope.FreeMemory();
                 }
@@ -166,7 +182,17 @@ namespace Ream.Interpreting
             }
             else
                 foreach (object _ in resolver.GetIterator(Evaluate(stmt.iterator)))
-                    Execute(stmt.body);
+                {
+                    try
+                    {
+                        Execute(stmt.body);
+                    }
+                    catch (Break)
+                    {
+                        break;
+                    }
+                    catch (Continue) { /* Don't care */ }
+                }
 
             return null;
         }
@@ -345,7 +371,17 @@ namespace Ream.Interpreting
         public object VisitWhileStmt(Stmt.While stmt)
         {
             while (resolver.Truthy(Evaluate(stmt.condition)))
-                Execute(stmt.body);
+            {
+                try
+                {
+                    Execute(stmt.body);
+                }
+                catch (Break)
+                {
+                    break;
+                }
+                catch (Continue) { /* Don't care */ }
+            }
             return null;
         }
     }

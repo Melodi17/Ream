@@ -34,6 +34,9 @@ namespace Ream.Lexing
             { "false", TokenType.False },
             { "import", TokenType.Import },
             { "evaluate", TokenType.Evaluate },
+            { "continue", TokenType.Continue },
+            { "break", TokenType.Break },
+            { "macro", TokenType.Macro },
         };
 
         public Lexer(string source)
@@ -86,7 +89,7 @@ namespace Ream.Lexing
                         AddToken(TokenType.Less);
                     break;
                 case '+': AddToken(Match('=') ? TokenType.Plus_Equal : TokenType.Plus); break;
-                case '-': AddToken(Match('=') ? TokenType.Minus_Equal : TokenType.Minus); break;
+                case '-': AddToken(Match('=') ? TokenType.Minus_Equal : Match('>') ? TokenType.Arrow : TokenType.Minus); break;
                 case '*': AddToken(Match('=') ? TokenType.Star_Equal : TokenType.Star); break;
                 case '/': //AddToken(Match('=') ? TokenType.Slash_Equal : TokenType.Slash); break;
                     if (Match('/'))

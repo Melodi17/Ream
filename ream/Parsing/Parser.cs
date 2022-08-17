@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using ream.Parsing;
 using Ream.Interpreting;
 using Ream.Lexing;
 using Ream.SDK;
@@ -7,14 +7,16 @@ namespace Ream.Parsing
 {
     public class Parser
     {
+        private Dictionary<string, Macro> macros;
         private class ParseError : Exception { }
         public bool AtEnd => Peek().Type == TokenType.End;
-        private readonly List<Token> Tokens;
+        private List<Token> tokens;
         private int Current = 0;
 
         public Parser(List<Token> tokens)
         {
-            this.Tokens = new();
+            this.macros = new();
+            this.tokens = new();
             Token lastToken = null;
             foreach (var item in tokens) // Remove empty lines
             {
@@ -23,8 +25,29 @@ namespace Ream.Parsing
                     continue;
 
                 lastToken = item;
-                this.Tokens.Add(item);
+                this.tokens.Add(item);
             }
+        }
+        private static IEnumerable<IEnumerable<TValue>> Chunk<TValue>(
+                    IEnumerable<TValue> values,
+                    Func<TValue, bool> pred)
+        {
+            using (var enumerator = values.GetEnumerator())
+            {
+                while (enumerator.MoveNext())
+                {
+                    yield return GetChunk(enumerator, pred).ToList();
+                }
+            }
+        }
+        private static IEnumerable<T> GetChunk<T>(
+                         IEnumerator<T> enumerator,
+                         Func<T, bool> pred)
+        {
+            do
+            {
+                yield return enumerator.Current;
+            } while (!pred(enumerator.Current) && enumerator.MoveNext());
         }
         public List<Stmt> Parse()
         {
@@ -307,6 +330,8 @@ namespace Ream.Parsing
             }
             if (Match(TokenType.Lambda)) return ExprFinishLambda();
 
+            if (Match(TokenType.Newline)) return null;
+
             throw Error(Peek(), "Expected expression");
         }
         private bool Match(params TokenType[] types)
@@ -339,9 +364,9 @@ namespace Ream.Parsing
             return Previous();
         }
         private Token Peek(int n = 0)
-            => Tokens[Current + n];
+            => tokens[Current + n];
         private Token Previous()
-            => Tokens[Current - 1];
+            => tokens[Current - 1];
         private ParseError Error(Token token, string message)
         {
             Program.Error(token, message);
@@ -388,16 +413,12 @@ namespace Ream.Parsing
                     else
                         return VariableDeclaration<Stmt.Typed>(dat);
                 }
-                //if (Match(TokenType.Local)) return VariableDeclaration<Stmt.Local>();
-                //if (Match(TokenType.Global)) return VariableDeclaration<Stmt.Global>();
-                //if (Match(TokenType.Dynamic)) return VariableDeclaration<Stmt.Dynamic>();
-                //if (Match(TokenType.Final)) return VariableDeclaration<Stmt.Final>();
                 if (Match(TokenType.Function)) return FunctionDeclaration(VariableType.Normal);
                 if (Match(TokenType.Class)) return ClassDeclaration();
 
                 return Statement();
             }
-            catch (ParseError error)
+            catch (ParseError)
             {
                 Synchronize();
                 return null;
@@ -411,6 +432,9 @@ namespace Ream.Parsing
             if (Match(TokenType.Evaluate)) return EvaluateStatement();
             if (Match(TokenType.Import)) return ImportStatement();
             if (Match(TokenType.Return)) return ReturnStatement();
+            if (Match(TokenType.Continue)) return ContinueStatement();
+            if (Match(TokenType.Break)) return BreakStatement();
+            if (Match(TokenType.Macro)) return MacroStatement();
             if (Match(TokenType.Colon_Colon)) return ScriptStatement();
             if (Match(TokenType.Left_Brace)) return new Stmt.Block(Block());
 
@@ -427,6 +451,74 @@ namespace Ream.Parsing
 
             InsistEnd();
             return new Stmt.Return(keyword, value);
+        }
+        private Stmt ContinueStatement()
+        {
+            Token keyword = Previous();
+            InsistEnd();
+
+            return new Stmt.Continue(keyword);
+        }
+        private Stmt BreakStatement()
+        {
+            Token keyword = Previous();
+            InsistEnd();
+
+            return new Stmt.Break(keyword);
+        }
+        private Stmt MacroStatement()
+        {
+            //Token keyword = Previous();
+            Token name = Consume(TokenType.Identifier, "Expected identifier after 'macro'");
+            Consume(TokenType.Equal, "Expected '=' before macro body");
+
+            List<Token> body = new();
+
+            while (!Check(TokenType.Newline))
+                body.Add(Advance());
+
+            InsistEnd();
+
+            macros[name.Raw] = new Macro(body);
+
+            List<Token> newTokens = new();
+            foreach (Token token in tokens.ToList())
+            {
+                if (token.Type == TokenType.Identifier && token.Raw == name.Raw)
+                    newTokens.AddRange(body);
+                else
+                    newTokens.Add(token);
+            }
+            tokens = newTokens;
+
+            return null;
+        }
+        public List<Token> Between(TokenType start, TokenType end)
+        {
+            List<Token> tokens = new();
+            int level = 0;
+
+            while (true)
+            {
+                Token current = Advance();
+                if (current.Type == start)
+                {
+                    tokens.Add(current);
+                    level++;
+                }
+                else if (current.Type == end)
+                {
+                    level--;
+                    if (level <= 0)
+                        break;
+                    else
+                        tokens.Add(current);
+                }
+                else
+                    tokens.Add(current);
+            }
+
+            return tokens;
         }
         private List<Stmt> Block()
         {

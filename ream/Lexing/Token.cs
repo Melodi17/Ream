@@ -30,5 +30,14 @@
 
         public static implicit operator Token(string raw)
             => new(raw);
+
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Token tok)
+                return this.Type == tok.Type
+                    && this.Raw == tok.Raw;
+            return base.Equals(obj);
+        }
     }
 }
