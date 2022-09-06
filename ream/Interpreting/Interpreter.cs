@@ -22,6 +22,8 @@ namespace Ream.Interpreting
 
             DefineClass<Refraction>();
             DefineFunction("print", (i, j) => { Console.WriteLine(j[0] is string s ? s : resolver.Stringify(j[0])); return null; }, 1);
+            DefineFunction("read", (i, j) => { Console.Write(j[0] != null ? j[0] is string s ? s : resolver.Stringify(j[0]) : ""); return Console.ReadLine(); }, 1);
+            DefineFunction("wait", (i, j) => { Thread.Sleep(j[0] is double d ? resolver.GetInt(d) : 0); return null; }, 1);
             DefineFunction("dispose", (i, j) => { if (j[0] is Pointer p) p.Dispose(); return null; }, 1);
         }
 
