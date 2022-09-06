@@ -5,6 +5,10 @@ using Ream.SDK;
 
 namespace Ream.Interpreting
 {
+    public class Refraction
+    {
+        // TODO: Add various functions for self-inspection
+    }
     public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
     {
         public readonly Scope Globals;
@@ -16,8 +20,47 @@ namespace Ream.Interpreting
             scope = new(Globals);
             resolver = new(this);
 
-            Globals.Define("print", new ExternalFunction((i, j) => { Console.WriteLine(resolver.Stringify(j[0])); return null; }, 0));
-            Globals.Define("dispose", new ExternalFunction((i, j) => { if (j[0] is Pointer p) p.Dispose(); return null; }, 0));
+            DefineClass<Refraction>();
+            DefineFunction("print", (i, j) => { Console.WriteLine(j[0] is string s ? s : resolver.Stringify(j[0])); return null; }, 1);
+            DefineFunction("dispose", (i, j) => { if (j[0] is Pointer p) p.Dispose(); return null; }, 1);
+        }
+
+        public void DefineObject(string key, object value)
+        {
+            Globals.Define(key, value);
+        }
+        public void DefineFunction(string key, Func<object, List<object>, object> function, int argumentCount)
+        {
+            Globals.Define(key, new ExternalFunction(function, argumentCount));
+        }
+        public void DefineFunction(string key, MethodInfo method)
+        {
+            Globals.Define(key, new ExternalFunction(method));
+        }
+        public void DefineFunction(MethodInfo method)
+        {
+            DefineFunction(method.Name, method);
+        }
+        public void DefineClass(string key, object instance)
+        {
+            Globals.Define(key, instance);
+        }
+        public void DefineClass(string key, Type type)
+        {
+            Globals.Define(key, new ExternalClass(type, this));
+        }
+        public void DefineClass(Type type)
+        {
+            DefineClass(type.Name, type);
+        }
+        public void DefineClass<T>(string name)
+        {
+            DefineClass(name, typeof(T));
+        }
+        public void DefineClass<T>()
+        {
+            Type type = typeof(T);
+            DefineClass(type.Name, type);
         }
 
         public void Interpret(List<Stmt> statements)
@@ -30,6 +73,19 @@ namespace Ream.Interpreting
             catch (RuntimeError error)
             {
                 Program.RuntimeError(error);
+            }
+        }
+        public object Interpret(Expr expression)
+        {
+            try
+            {
+                object value = Evaluate(expression);
+                return value;
+            }
+            catch (RuntimeError error)
+            {
+                Program.RuntimeError(error);
+                return null;
             }
         }
         private object Evaluate(Expr expr)

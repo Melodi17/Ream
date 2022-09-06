@@ -102,16 +102,71 @@ namespace Ream
             if (ErrorOccured) Environment.Exit(65);
             if (RuntimeErrorOccured) Environment.Exit(70);
         }
-
+        private static int GetDepth(List<Token> tokens, TokenType opening, TokenType closing)
+        {
+            return Math.Max(0, tokens.Count(x => x.Type == opening) - tokens.Count(x => x.Type == closing));
+        }
+        private static int GetTotalDepth(List<Token> tokens)
+        {
+            return GetDepth(tokens, TokenType.Left_Brace, TokenType.Right_Brace)
+                + GetDepth(tokens, TokenType.Left_Parenthesis, TokenType.Right_Parenthesis)
+                + GetDepth(tokens, TokenType.Left_Square, TokenType.Right_Square);
+        }
+        private static bool IsFinished(List<Token> tokens)
+        {
+            return GetDepth(tokens, TokenType.Left_Brace, TokenType.Right_Brace) == 0
+                && GetDepth(tokens, TokenType.Left_Parenthesis, TokenType.Right_Parenthesis) == 0
+                && GetDepth(tokens, TokenType.Left_Square, TokenType.Right_Square) == 0;
+        }
         private static void RunPrompt()
         {
+            //while (true)
+            //{
+            //    Console.Write("> ");
+            //    string line = Console.ReadLine();
+            //    if (line == null) break;
+            //    Run(line);
+            //    ErrorOccured = false;
+            //}
+
+            Console.WriteLine("Welcome to the Ream interactive mode");
+            Console.WriteLine("type exit to quit");
+            Console.WriteLine("");
+
             while (true)
             {
-                Console.Write("> ");
-                string line = Console.ReadLine();
-                if (line == null) break;
-                Run(line);
                 ErrorOccured = false;
+
+                Console.Write("> ");
+                string input = Console.ReadLine();
+                if (input.ToLower() == "exit")
+                    break;
+                Lexer lexer = new(input);
+                List<Token> tokens = lexer.Lex();
+                while (!IsFinished(tokens))
+                {
+                    Console.Write(". " + String.Join("", Enumerable.Repeat<string>(". ", GetTotalDepth(tokens))));
+                    string txt = Console.ReadLine();
+                    tokens.AddRange(new Lexer(txt).Lex());
+                    tokens.Add(new(TokenType.Newline, "\n", '\n', tokens.Count(x => x.Type == TokenType.Newline)));
+                }
+                tokens.RemoveAll(x => x.Type == TokenType.End);
+                tokens.Add(new(TokenType.End, "", null, tokens.Count(x => x.Type == TokenType.Newline)));
+
+                Parser parser = new(tokens);
+                object syntax = parser.ParseREPL();
+
+                // Ignore it if there was a syntax error.
+                if (ErrorOccured) continue;
+
+                if (syntax is List<Stmt> list)
+                    Interpreter.Interpret(list);
+                else if (syntax is Expr expr)
+                {
+                    string result = Interpreter.resolver.Stringify(Interpreter.Interpret(expr));
+                    if (result != null)
+                        Console.WriteLine(result);
+                }
             }
         }
 

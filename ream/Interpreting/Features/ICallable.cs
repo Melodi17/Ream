@@ -10,6 +10,14 @@ namespace Ream.Interpreting
         public object Call(Interpreter interpreter, List<object> arguments);
     }
 
+    public class BuiltFunction
+    {
+        public ICallable Callable;
+        public Interpreter Interpreter;
+        public object Call(List<object> arguments) 
+            => Callable.Call(Interpreter, arguments);
+    }
+
     public class ExternalFunction : ICallable
     {
         public Func<object, List<object>, object> _func;

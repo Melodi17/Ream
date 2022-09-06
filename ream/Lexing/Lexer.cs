@@ -74,6 +74,13 @@ namespace Ream.Lexing
                 case ',': AddToken(TokenType.Comma); break;
                 case '.': AddToken(TokenType.Period); break;
                 case '?': AddToken(TokenType.Question); break;
+                case '\\':
+                    if (Peek() == '\n')
+                        Advance();
+                    else
+                        Program.Error(line, "Expected newline character after '\\'");
+                    break;
+                case '$': HandleInterpolated(Advance()); break;
 
                 case '&': AddToken(Match('&') ? TokenType.Ampersand_Ampersand : TokenType.Ampersand); break;
                 case '|': AddToken(Match('|') ? TokenType.Pipe_Pipe : TokenType.Pipe); break;
@@ -95,7 +102,14 @@ namespace Ream.Lexing
                     if (Match('/'))
                         while (Peek() != '\n' && !AtEnd) Advance();
                     else if (Match('*'))
+                    {
                         while (Peek() != '*' && Peek(1) != '/' && !AtEnd) Advance();
+                        if (!AtEnd)
+                        {
+                            Advance();
+                            Advance();
+                        }
+                    }
                     else if (Match('='))
                         AddToken(TokenType.Slash_Equal);
                     else
@@ -167,6 +181,101 @@ namespace Ream.Lexing
             if (current + n >= Source.Length) return '\0';
             return Source[current + n];
         }
+        private void HandleInterpolated(char st)
+        {
+            string text = "";
+            bool escaped = false;
+            while (!AtEnd)
+            {
+                char ch = Peek();
+                if (ch == '\n') line++;
+                if (ch == '{' && !escaped)
+                {
+                    start++;
+                    AddToken(TokenType.String, text);
+                    Advance();
+                    start = current;
+                    AddToken(TokenType.Plus, '+');
+                    AddToken(TokenType.Left_Parenthesis, '(');
+                    text = "";
+                    int level = 1;
+                    bool done = false;
+                    while (!done)
+                    {
+                        switch (Peek())
+                        {
+                            case '{':
+                                level++;
+                                break;
+
+                            case '}':
+                                level--;
+                                if (level == 0)
+                                {
+                                    Advance();
+                                    start = current;
+                                    AddToken(TokenType.Right_Parenthesis, ')');
+                                    AddToken(TokenType.Plus, '+');
+                                    done = true;
+                                    break;
+                                }
+                                break;
+
+                            default:
+                                LexToken();
+                                break;
+                        }
+                    }
+                    continue;
+                }
+                if (ch == st && !escaped) break;
+                if (escaped)
+                {
+                    switch (ch)
+                    {
+                        case 'a': ch = '\a'; break;
+                        case 'b': ch = '\b'; break;
+                        case 'f': ch = '\f'; break;
+                        case 'n': ch = '\n'; break;
+                        case 'r': ch = '\r'; break;
+                        case 't': ch = '\t'; break;
+                        case 'v': ch = '\v'; break;
+                        case '0': ch = '\0'; break;
+
+                        case '\\':
+                        case '\'':
+                        case '\"':
+                        case '{':
+                        case '}':
+                            break;
+
+                        default:
+                            Program.Error(line, "Unknown escape character");
+                            break;
+                    }
+                }
+                if (escaped) escaped = false;
+                Advance();
+                if (ch == '\\' && !escaped)
+                {
+                    escaped = true;
+                    continue;
+                }
+
+                text += ch;
+            }
+
+            if (AtEnd)
+            {
+                Program.Error(line, "Unterminated string");
+                return;
+            }
+
+            Advance();
+
+            //Source.Between(start + 1, current - 1);
+            AddToken(TokenType.String, text);
+        }
         private void HandleString(char st)
         {
             string text = "";
@@ -191,11 +300,11 @@ namespace Ream.Lexing
 
                         case '\\':
                         case '\'':
-                        case '\"': 
+                        case '\"':
                             break;
 
                         default:
-                            Program.Error(line, "Unknown escape character"); 
+                            Program.Error(line, "Unknown escape character");
                             break;
                     }
                 }

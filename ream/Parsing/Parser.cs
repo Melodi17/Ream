@@ -8,6 +8,8 @@ namespace Ream.Parsing
     public class Parser
     {
         private Dictionary<string, Macro> macros;
+        private bool allowExpression = false;
+        private bool foundExpression = false;
         private class ParseError : Exception { }
         public bool AtEnd => Peek().Type == TokenType.End;
         private List<Token> tokens;
@@ -28,9 +30,7 @@ namespace Ream.Parsing
                 this.tokens.Add(item);
             }
         }
-        private static IEnumerable<IEnumerable<TValue>> Chunk<TValue>(
-                    IEnumerable<TValue> values,
-                    Func<TValue, bool> pred)
+        private static IEnumerable<IEnumerable<TValue>> Chunk<TValue>(IEnumerable<TValue> values, Func<TValue, bool> pred)
         {
             using (var enumerator = values.GetEnumerator())
             {
@@ -40,9 +40,7 @@ namespace Ream.Parsing
                 }
             }
         }
-        private static IEnumerable<T> GetChunk<T>(
-                         IEnumerator<T> enumerator,
-                         Func<T, bool> pred)
+        private static IEnumerable<T> GetChunk<T>(IEnumerator<T> enumerator, Func<T, bool> pred)
         {
             do
             {
@@ -55,6 +53,26 @@ namespace Ream.Parsing
             while (!AtEnd)
             {
                 statements.Add(Declaration());
+            }
+
+            return statements;
+        }
+
+        public object ParseREPL()
+        {
+            allowExpression = true;
+            List<Stmt> statements = new();
+            while (!AtEnd)
+            {
+                statements.Add(Declaration());
+
+                if (foundExpression)
+                {
+                    Stmt last = statements.Last();
+                    return ((Stmt.Expression)last).expression;
+                }
+
+                allowExpression = false;
             }
 
             return statements;
@@ -199,17 +217,22 @@ namespace Ream.Parsing
                 return new Expr.Translate(op, name);
             }
 
-            return ExprCall();
+            return ExprIndexer();
         }
         private Expr ExprCall()
         {
-            Expr expr = ExprIndexer();
+            Expr expr = ExprPrimary();
 
             while (true)
             {
                 if (Match(TokenType.Left_Parenthesis))
                 {
                     expr = ExprFinishCall(expr);
+                }
+                else if (Match(TokenType.Period))
+                {
+                    Token name = Consume(TokenType.Identifier, "Expected property name after '.'");
+                    expr = new Expr.Get(expr, name);
                 }
                 else
                 {
@@ -221,13 +244,14 @@ namespace Ream.Parsing
         }
         private Expr ExprIndexer()
         {
-            Expr expr = ExprPrimary();
+            Expr expr = ExprCall();
 
             while (true)
             {
                 if (Match(TokenType.Left_Square))
                 {
-                    Expr index = Expression();
+                    //Expr index = Expression();
+                    Expr index = ExprIndexer();
 
                     Token paren = Consume(TokenType.Right_Square, "Expected ']' after index");
                     InsistEnd();
@@ -253,13 +277,17 @@ namespace Ream.Parsing
             List<Expr> arguments = new();
             if (!Check(TokenType.Right_Parenthesis))
             {
+                InsistEnd();
                 do
                 {
+                    Match(TokenType.Newline);
+                    if (Check(TokenType.Right_Parenthesis))
+                        break;
                     if (arguments.Count >= 255)
                         Error(Peek(), "Maximum of 255 arguments allowed");
 
                     arguments.Add(Expression());
-                } while (Match(TokenType.Comma));
+                } while (Match(TokenType.Newline, TokenType.Comma));
             }
 
             Token paren = Consume(TokenType.Right_Parenthesis, "Expected ')' after arguments");
@@ -292,13 +320,17 @@ namespace Ream.Parsing
             List<Expr> items = new();
             if (!Check(TokenType.Right_Square))
             {
+                InsistEnd();
                 do
                 {
+                    Match(TokenType.Newline);
+                    if (Check(TokenType.Right_Square))
+                        break;
                     if (items.Count >= 255)
                         Error(Peek(), "Maximum of 255 items allowed");
 
                     items.Add(Expression());
-                } while (Match(TokenType.Comma));
+                } while (Match(TokenType.Comma, TokenType.Newline));
             }
 
             Token paren = Consume(TokenType.Right_Square, "Expected ']' after arguments");
@@ -621,7 +653,12 @@ namespace Ream.Parsing
         private Stmt ExpressionStatement()
         {
             Expr expr = Expression();
-            InsistEnd();
+
+            if (allowExpression && AtEnd)
+                foundExpression = true;
+            else
+                InsistEnd();
+
             return new Stmt.Expression(expr);
         }
         private Stmt EvaluateStatement()

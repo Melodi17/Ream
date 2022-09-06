@@ -35,10 +35,10 @@ namespace Ream.Interpreting
                 "Upper" => new ExternalFunction((i, j) => Value.ToUpper(), 0),
                 "Split" => new ExternalFunction((i, j) => Value.Split(j[0].ToString()).ToList<object>(), 1),
 
-                Resolver.OVERRIDE_STRINGIFY => new ExternalFunction((i, j) => Value, 0),
+                Resolver.OVERRIDE_STRINGIFY => new ExternalFunction((i, j) => $"\'{Value}\'", 0),
                 Resolver.OVERRIDE_INDEX => new ExternalFunction((i, j) => j[0] is double d ? Value.ElementAtOrDefault(Program.Interpreter.resolver.GetInt(d)) : null, 0),
                 Resolver.OVERRIDE_ITERATOR => new ExternalFunction((i, j) => Value.ToCharArray().Select(x => (object)x.ToString()).ToList(), 0),
-                Resolver.OPERATOR_ADD => new ExternalFunction((i, j) => Value + Program.Interpreter.resolver.Stringify(j[0]), 1),
+                Resolver.OPERATOR_ADD => new ExternalFunction((i, j) => Value + (j[0] is string s ? s : Program.Interpreter.resolver.Stringify(j[0])), 1),
                 Resolver.OPERATOR_MULTIPLY => new ExternalFunction((i, j) => j[0] is double d ? string.Join("", Enumerable.Repeat(Value, Program.Interpreter.resolver.GetInt(d))) : null, 1),
                 _ => null,
             };
@@ -280,5 +280,7 @@ namespace Ream.Interpreting
         {
             Set(key.Raw, value);
         }
+
+        public override string ToString() => $"prototype with {Values.Count}";
     }
 }

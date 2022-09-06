@@ -10,7 +10,7 @@
 
         Comma, Period, Plus, Minus, Star, Slash,
         Colon, Ampersand, Pipe, Equal, Not, Greater,
-        Less, Question, Arrow,
+        Less, Question, Arrow, Dollar,
 
         Not_Equal, Equal_Equal, Greater_Equal, 
         Less_Equal, Plus_Equal, Minus_Equal, Star_Equal,
