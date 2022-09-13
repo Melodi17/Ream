@@ -1,4 +1,5 @@
 ﻿using System.Runtime.Serialization.Formatters.Binary;
+using ream;
 using Ream.Interpreting;
 using Ream.Lexing;
 using Ream.Parsing;
@@ -145,7 +146,7 @@ namespace Ream
                 List<Token> tokens = lexer.Lex();
                 while (!IsFinished(tokens))
                 {
-                    Console.Write(". " + String.Join("", Enumerable.Repeat<string>(". ", GetTotalDepth(tokens))));
+                    Console.Write(". " + string.Join("", Enumerable.Repeat<string>(". ", GetTotalDepth(tokens))));
                     string txt = Console.ReadLine();
                     tokens.AddRange(new Lexer(txt).Lex());
                     tokens.Add(new(TokenType.Newline, "\n", '\n', tokens.Count(x => x.Type == TokenType.Newline)));

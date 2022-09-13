@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using Ream.Lexing;
 using Ream.Parsing;
 using Ream.SDK;
 
@@ -15,7 +16,7 @@ namespace Ream.Interpreting
         public ICallable Callable;
         public Interpreter Interpreter;
         public object Call(List<object> arguments) 
-            => Callable.Call(Interpreter, arguments);
+            => this.Callable.Call(this.Interpreter, arguments);
     }
 
     public class ExternalFunction : ICallable
@@ -28,8 +29,8 @@ namespace Ream.Interpreting
         private ExternalFunction() { }
         public ExternalFunction(Func<object, List<object>, object> func, int argumentCount)
         {
-            _func = func;
-            _argumentCount = argumentCount;
+            this._func = func;
+            this._argumentCount = argumentCount;
         }
 
         public ExternalFunction(MethodInfo info)
@@ -37,33 +38,33 @@ namespace Ream.Interpreting
             var attribute = info.GetCustomAttribute<ExternalFunctionAttribute>();
             if (attribute == null)
             {
-                _argumentCount = info.GetParameters().Length;
-                _func = new Func<object, List<object>, object>((ctx, args) =>
+                this._argumentCount = info.GetParameters().Length;
+                this._func = new Func<object, List<object>, object>((ctx, args) =>
                      info.Invoke(ctx, args.ToArray()));
-                Type = VariableType.Normal;
-                if (info.IsStatic && !Type.HasFlag(VariableType.Static))
-                    Type |= VariableType.Static;
+                this.Type = VariableType.Normal;
+                if (info.IsStatic && !this.Type.HasFlag(VariableType.Static))
+                    this.Type |= VariableType.Static;
 
-                Name = info.Name;
+                this.Name = info.Name;
             }
             else
             {
-                _argumentCount = attribute.ArgumentCount == -1 ? info.GetParameters().Length : attribute.ArgumentCount;
-                _func = new Func<object, List<object>, object>((ctx, args) =>
+                this._argumentCount = attribute.ArgumentCount == -1 ? info.GetParameters().Length : attribute.ArgumentCount;
+                this._func = new Func<object, List<object>, object>((ctx, args) =>
                      info.Invoke(ctx, args.ToArray()));
-                Type = attribute.Type;
-                if (info.IsStatic && !Type.HasFlag(VariableType.Static))
-                    Type |= VariableType.Static;
+                this.Type = attribute.Type;
+                if (info.IsStatic && !this.Type.HasFlag(VariableType.Static))
+                    this.Type |= VariableType.Static;
 
-                Name = attribute.Name == "" ? info.Name : attribute.Name;
+                this.Name = attribute.Name == "" ? info.Name : attribute.Name;
             }
         }
         public int ArgumentCount()
-            => _argumentCount;
+            => this._argumentCount;
 
         public object Call(Interpreter interpreter, List<object> arguments)
         {
-            return _func.Invoke(ClassRef, arguments);
+            return this._func.Invoke(this.ClassRef, arguments);
         }
 
         public ExternalFunction Bind(object clss)
@@ -80,74 +81,57 @@ namespace Ream.Interpreting
     }
     public class Function : ICallable
     {
-        private readonly Stmt.Function Declaration;
+        List<Token> parameters;
+        List<Stmt> body;
+        //private readonly Stmt.Function Declaration;
         private readonly Scope ParentScope;
 
         public Function(Stmt.Function declaration, Scope scope)
         {
-            Declaration = declaration;
-            ParentScope = scope;
+            //Declaration = declaration;
+            this.parameters = declaration.parameters;
+            this.body = declaration.body;
+            this.ParentScope = scope;
+        }
+
+        public Function(Expr.Lambda declaration, Scope scope)
+        {
+            this.parameters = declaration.parameters;
+            this.body = declaration.body;
+            this.ParentScope = scope;
+        }
+
+        public Function(List<Token> parameters, List<Stmt> body, Scope scope)
+        {
+            this.parameters = parameters;
+            this.body = body;
+            this.ParentScope = scope;
         }
 
         public Function Bind(IPropable instance)
         {
             // Clone it
-            Scope scope = new(ParentScope);
+            Scope scope = new(this.ParentScope);
             scope.Set("this", instance, VariableType.Local);
-            return new Function(Declaration, scope);
+            return new Function(this.parameters, this.body, scope);
         }
 
         public int ArgumentCount()
         {
-            return Declaration.parameters.Count;
+            return parameters.Count;
         }
 
         public object Call(Interpreter interpreter, List<object> arguments)
         {
-            Scope scope = new(ParentScope);
-            for (int i = 0; i < Declaration.parameters.Count; i++)
+            Scope scope = new(this.ParentScope);
+            for (int i = 0; i < parameters.Count; i++)
             {
-                scope.Set(Declaration.parameters[i], arguments[i], VariableType.Local);
+                scope.Set(parameters[i], arguments[i], VariableType.Local);
             }
 
             try
             {
-                interpreter.ExecuteBlock(Declaration.body, scope);
-            }
-            catch (Return returnVal)
-            {
-                return returnVal.Value;
-            }
-            return null;
-        }
-    }
-    public class Lambda : ICallable
-    {
-        private readonly Expr.Lambda Declaration;
-        private readonly Scope ParentScope;
-
-        public Lambda(Expr.Lambda declaration, Scope scope)
-        {
-            Declaration = declaration;
-            ParentScope = scope;
-        }
-
-        public int ArgumentCount()
-        {
-            return Declaration.parameters.Count;
-        }
-
-        public object Call(Interpreter interpreter, List<object> arguments)
-        {
-            Scope scope = new(ParentScope);
-            for (int i = 0; i < Declaration.parameters.Count; i++)
-            {
-                scope.Set(Declaration.parameters[i], arguments[i], VariableType.Local);
-            }
-
-            try
-            {
-                interpreter.ExecuteBlock(Declaration.body, scope);
+                interpreter.ExecuteBlock(body, scope);
             }
             catch (Return returnVal)
             {

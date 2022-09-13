@@ -20,6 +20,14 @@ namespace Ream.Interpreting
             scope = new(Globals);
             resolver = new(this);
 
+            DefineObject("String", new ObjectType(StringPropMap.TypeID));
+            DefineObject("Number", new ObjectType(DoublePropMap.TypeID));
+            DefineObject("Boolean", new ObjectType(BoolPropMap.TypeID));
+            DefineObject("Sequence", new ObjectType(ListPropMap.TypeID));
+            //DefineObject("Dictionary", new ObjectType("dictionary"));
+            //DefineObject("Function", new ObjectType("function"));
+
+
             DefineClass<Refraction>();
             DefineFunction("print", (i, j) => { Console.WriteLine(j[0] is string s ? s : resolver.Stringify(j[0])); return null; }, 1);
             DefineFunction("read", (i, j) => { Console.Write(j[0] != null ? j[0] is string s ? s : resolver.Stringify(j[0]) : ""); return Console.ReadLine(); }, 1);
@@ -29,15 +37,15 @@ namespace Ream.Interpreting
 
         public void DefineObject(string key, object value)
         {
-            Globals.Define(key, value);
+            Globals.Define(key, value, VariableType.Global);
         }
         public void DefineFunction(string key, Func<object, List<object>, object> function, int argumentCount)
         {
-            Globals.Define(key, new ExternalFunction(function, argumentCount));
+            Globals.Define(key, new ExternalFunction(function, argumentCount), VariableType.Global);
         }
         public void DefineFunction(string key, MethodInfo method)
         {
-            Globals.Define(key, new ExternalFunction(method));
+            Globals.Define(key, new ExternalFunction(method), VariableType.Global);
         }
         public void DefineFunction(MethodInfo method)
         {
@@ -45,11 +53,11 @@ namespace Ream.Interpreting
         }
         public void DefineClass(string key, object instance)
         {
-            Globals.Define(key, instance);
+            Globals.Define(key, instance, VariableType.Global);
         }
         public void DefineClass(string key, Type type)
         {
-            Globals.Define(key, new ExternalClass(type, this));
+            Globals.Define(key, new ExternalClass(type, this), VariableType.Global);
         }
         public void DefineClass(Type type)
         {
@@ -105,7 +113,6 @@ namespace Ream.Interpreting
                 {
                     Execute(statement);
                 }
-
                 this.scope.FreeMemory();
             }
             finally
@@ -135,7 +142,8 @@ namespace Ream.Interpreting
             foreach (Type type in asm.GetTypes()
                 .Where(x => x.GetCustomAttribute<ExternalClassAttribute>() != null))
             {
-                Globals.Define(type.Name, new ExternalClass(type, this), VariableType.Global);
+                DefineClass(type);
+                //Globals.Define(type.Name, new ExternalClass(type, this), VariableType.Global);
             }
         }
 
@@ -315,7 +323,7 @@ namespace Ream.Interpreting
         }
         public object VisitLambdaExpr(Expr.Lambda expr)
         {
-            Lambda function = new(expr, scope);
+            Function function = new(expr, scope);
             return function;
         }
         public object VisitLiteralExpr(Expr.Literal expr)
@@ -373,7 +381,11 @@ namespace Ream.Interpreting
         }
         public object VisitScriptStmt(Stmt.Script stmt)
         {
-            throw new NotImplementedException();
+            string code = stmt.body.Literal.ToString();
+
+            // TODO: Implement some functionality
+            
+            return null;
         }
         public object VisitSequenceExpr(Expr.Sequence expr)
         {

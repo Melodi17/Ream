@@ -12,8 +12,52 @@ namespace Ream.Interpreting
         public void Set(Token key, object value, VariableType type = VariableType.Normal);
         public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal);
     }
+    public class ObjectType : IPropable
+    {
+        public static Dictionary<string, Dictionary<string, object>> Extensions = new();
+        public string ID;
+
+        public static object Get(Token key, string id, IPropable prop)
+        {
+            if (Extensions.ContainsKey(id))
+                if (Extensions[id].ContainsKey(key.Raw))
+                {
+                    object item = Extensions[id][key.Raw];
+                    if (item is Function func)
+                        return func.Bind(prop);
+
+                    return item;
+                }
+            
+            return null;
+        }
+        public static void Set(Token key, string id, object value)
+        {
+            if (Extensions.ContainsKey(id))
+                Extensions[id][key.Raw] = value;
+            else
+                Extensions.Add(id, new Dictionary<string, object> { { key.Raw, value } });
+        }
+        public ObjectType(string id)
+        {
+            this.ID = id;
+            if (!Extensions.ContainsKey(id))
+                Extensions.Add(id, new Dictionary<string, object>());
+        }
+
+        public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal) => manualType;
+        public object Get(Token key)
+        {
+            return Extensions[ID].ContainsKey(key.Raw) ? Extensions[ID][key.Raw] : null;
+        }
+        public void Set(Token key, object value, VariableType type = VariableType.Normal)
+        {
+            Extensions[ID][key.Raw] = value;
+        }
+    }
     public class StringPropMap : IPropable
     {
+        public const string TypeID = "string";
         public readonly string Value;
         public StringPropMap(string value)
         {
@@ -40,14 +84,15 @@ namespace Ream.Interpreting
                 Resolver.OVERRIDE_ITERATOR => new ExternalFunction((i, j) => Value.ToCharArray().Select(x => (object)x.ToString()).ToList(), 0),
                 Resolver.OPERATOR_ADD => new ExternalFunction((i, j) => Value + (j[0] is string s ? s : Program.Interpreter.resolver.Stringify(j[0])), 1),
                 Resolver.OPERATOR_MULTIPLY => new ExternalFunction((i, j) => j[0] is double d ? string.Join("", Enumerable.Repeat(Value, Program.Interpreter.resolver.GetInt(d))) : null, 1),
-                _ => null,
+                _ => ObjectType.Get(key, TypeID, this),
             };
         }
 
-        public void Set(Token key, object value, VariableType type = VariableType.Normal) { }
+        public void Set(Token key, object value, VariableType type = VariableType.Normal) { ObjectType.Set(key, TypeID, value); }
     }
     public class DoublePropMap : IPropable
     {
+        public const string TypeID = "number";
         public readonly double Value;
         public DoublePropMap(double value)
         {
@@ -79,14 +124,15 @@ namespace Ream.Interpreting
                 : null, 1),
                 Resolver.OPERATOR_GREATER => new ExternalFunction((i, j) => j[0] is double d ? Value > d : null, 1),
                 Resolver.OPERATOR_LESS => new ExternalFunction((i, j) => j[0] is double d ? Value < d : null, 1),
-                _ => null,
+                _ => ObjectType.Get(key, TypeID, this),
             };
         }
 
-        public void Set(Token key, object value, VariableType type = VariableType.Normal) { }
+        public void Set(Token key, object value, VariableType type = VariableType.Normal) { ObjectType.Set(key, TypeID, value); }
     }
     public class BoolPropMap : IPropable
     {
+        public const string TypeID = "boolean";
         public readonly bool Value;
         public BoolPropMap(bool value)
         {
@@ -101,14 +147,15 @@ namespace Ream.Interpreting
             {
                 "Alt" => !Value,
                 Resolver.OVERRIDE_STRINGIFY => new ExternalFunction((i, j) => Value ? "true" : "false", 0),
-                _ => null,
+                _ => ObjectType.Get(key, TypeID, this),
             };
         }
 
-        public void Set(Token key, object value, VariableType type = VariableType.Normal) { }
+        public void Set(Token key, object value, VariableType type = VariableType.Normal) { ObjectType.Set(key, TypeID, value); }
     }
     public class ListPropMap : IPropable
     {
+        public const string TypeID = "sequence";
         public readonly List<object> Value;
         public ListPropMap(List<object> value)
         {
@@ -145,11 +192,11 @@ namespace Ream.Interpreting
                         return null;
                 }, 0),
                 Resolver.OVERRIDE_ITERATOR => new ExternalFunction((i, j) => Value, 0),
-                _ => null,
+                _ => ObjectType.Get(key, TypeID, this),
             };
         }
 
-        public void Set(Token key, object value, VariableType type = VariableType.Normal) { }
+        public void Set(Token key, object value, VariableType type = VariableType.Normal) { ObjectType.Set(key, TypeID, value); }
     }
     public class KeyValuePropMap : IPropable
     {
@@ -193,7 +240,7 @@ namespace Ream.Interpreting
             {
                 case Resolver.OVERRIDE_EQUAL: return new ExternalFunction((i, j) => InternalValue.Equals(j[0]), 1);
                 case Resolver.OVERRIDE_STRINGIFY: return new ExternalFunction((i, j) => InternalValue.ToString(), 0);
-                case Resolver.OVERRIDE_ITERATOR: return new ExternalFunction((i, j) => InternalValue is IEnumerable<object> l ? l.ToList() : null, 0);
+                case Resolver.OVERRIDE_ITERATOR: return new ExternalFunction((i, j) => InternalValue is List<object> l ? l : null, 0);
             }
 
             PropertyInfo prop = Type.GetProperties().FirstOrDefault(x =>

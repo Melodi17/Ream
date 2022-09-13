@@ -286,7 +286,11 @@ namespace Ream.Parsing
                     if (arguments.Count >= 255)
                         Error(Peek(), "Maximum of 255 arguments allowed");
 
-                    arguments.Add(Expression());
+                    if (Check(TokenType.Comma))
+                        arguments.Add(new Expr.Literal(null));
+                    else
+                        arguments.Add(Expression());
+                    
                 } while (Match(TokenType.Newline, TokenType.Comma));
             }
 
@@ -329,7 +333,10 @@ namespace Ream.Parsing
                     if (items.Count >= 255)
                         Error(Peek(), "Maximum of 255 items allowed");
 
-                    items.Add(Expression());
+                    if (Check(TokenType.Comma))
+                        items.Add(new Expr.Literal(null));
+                    else
+                        items.Add(Expression());
                 } while (Match(TokenType.Comma, TokenType.Newline));
             }
 
