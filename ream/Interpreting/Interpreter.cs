@@ -5,15 +5,22 @@ using Ream.SDK;
 
 namespace Ream.Interpreting
 {
+    public class Flags
+    {
+        public static bool Strict = false;
+    }
     public class Refraction
     {
         // TODO: Add various functions for self-inspection
     }
+
     public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
     {
         public readonly Scope Globals;
         private Scope scope;
         public Resolver resolver;
+        public bool raiseErrors => Flags.Strict;
+
         public Interpreter()
         {
             Globals = new();
@@ -24,49 +31,83 @@ namespace Ream.Interpreting
             DefineObject("Number", new ObjectType(DoublePropMap.TypeID));
             DefineObject("Boolean", new ObjectType(BoolPropMap.TypeID));
             DefineObject("Sequence", new ObjectType(ListPropMap.TypeID));
-            //DefineObject("Dictionary", new ObjectType("dictionary"));
+            DefineObject("Dictionary", new ObjectType(DictPropMap.TypeID));
             //DefineObject("Function", new ObjectType("function"));
 
 
-            DefineClass<Refraction>();
-            DefineFunction("print", (i, j) => { Console.WriteLine(j[0] is string s ? s : resolver.Stringify(j[0])); return null; }, 1);
-            DefineFunction("read", (i, j) => { Console.Write(j[0] != null ? j[0] is string s ? s : resolver.Stringify(j[0]) : ""); return Console.ReadLine(); }, 1);
-            DefineFunction("wait", (i, j) => { Thread.Sleep(j[0] is double d ? resolver.GetInt(d) : 0); return null; }, 1);
-            DefineFunction("dispose", (i, j) => { if (j[0] is Pointer p) p.Dispose(); return null; }, 1);
+            DefineClass<Flags>();
+            DefineFunction("print", (i, j) =>
+            {
+                Console.WriteLine(j[0] is string s ? s : resolver.Stringify(j[0]));
+                return null;
+            }, 1);
+            DefineFunction("read", (i, j) =>
+            {
+                Console.Write(j[0] != null ? j[0] is string s ? s : resolver.Stringify(j[0]) : "");
+                return Console.ReadLine();
+            }, 1);
+            DefineFunction("wait", (i, j) =>
+            {
+                Thread.Sleep(j[0] is double d ? resolver.GetInt(d) : 0);
+                return null;
+            }, 1);
+            DefineFunction("dispose", (i, j) =>
+            {
+                if (j[0] is Pointer p) p.Dispose();
+                return null;
+            }, 1);
+            DefineFunction("size", (i, j) =>
+            {
+                return (double)Pointer.GetPointerCount();
+            }, 0);
+            DefineFunction("hook", (i, j) =>
+            {
+                if (j[0] is Pointer p && j[1] is ICallable func)
+                    p.Hook(func);
+                return null;
+            }, 2);
         }
 
         public void DefineObject(string key, object value)
         {
             Globals.Define(key, value, VariableType.Global);
         }
+
         public void DefineFunction(string key, Func<object, List<object>, object> function, int argumentCount)
         {
             Globals.Define(key, new ExternalFunction(function, argumentCount), VariableType.Global);
         }
+
         public void DefineFunction(string key, MethodInfo method)
         {
             Globals.Define(key, new ExternalFunction(method), VariableType.Global);
         }
+
         public void DefineFunction(MethodInfo method)
         {
             DefineFunction(method.Name, method);
         }
+
         public void DefineClass(string key, object instance)
         {
             Globals.Define(key, instance, VariableType.Global);
         }
+
         public void DefineClass(string key, Type type)
         {
             Globals.Define(key, new ExternalClass(type, this), VariableType.Global);
         }
+
         public void DefineClass(Type type)
         {
             DefineClass(type.Name, type);
         }
+
         public void DefineClass<T>(string name)
         {
             DefineClass(name, typeof(T));
         }
+
         public void DefineClass<T>()
         {
             Type type = typeof(T);
@@ -84,7 +125,13 @@ namespace Ream.Interpreting
             {
                 Program.RuntimeError(error);
             }
+            catch (FlowControlError error)
+            {
+                if (raiseErrors)
+                    Program.RuntimeError(new RuntimeError(error.SourceToken, "Unexpected flow control jump."));
+            }
         }
+
         public object Interpret(Expr expression)
         {
             try
@@ -98,10 +145,12 @@ namespace Ream.Interpreting
                 return null;
             }
         }
+
         private object Evaluate(Expr expr)
         {
             return expr?.Accept(this);
         }
+
         public void ExecuteBlock(List<Stmt> statements, Scope scope)
         {
             Scope previous = this.scope;
@@ -113,6 +162,7 @@ namespace Ream.Interpreting
                 {
                     Execute(statement);
                 }
+
                 this.scope.FreeMemory();
             }
             finally
@@ -120,10 +170,12 @@ namespace Ream.Interpreting
                 this.scope = previous;
             }
         }
+
         public void Execute(Stmt stmt)
         {
             stmt?.Accept(this);
         }
+
         public object DeclareStmt(Token name, Expr initializer, VariableType type)
         {
             VariableType autoType = scope.AutoDetectType(name, type);
@@ -137,10 +189,11 @@ namespace Ream.Interpreting
             scope.Set(name, value, type);
             return value;
         }
+
         public void LoadAssemblyLibrary(Assembly asm)
         {
             foreach (Type type in asm.GetTypes()
-                .Where(x => x.GetCustomAttribute<ExternalClassAttribute>() != null))
+                         .Where(x => x.GetCustomAttribute<ExternalClassAttribute>() != null))
             {
                 DefineClass(type);
                 //Globals.Define(type.Name, new ExternalClass(type, this), VariableType.Global);
@@ -151,25 +204,34 @@ namespace Ream.Interpreting
         {
             return DeclareStmt(expr.name, expr.value, VariableType.Normal);
         }
+
         public object VisitBinaryExpr(Expr.Binary expr)
         {
             return resolver.Compare(Evaluate(expr.left), Evaluate(expr.right), expr.@operator.Type);
         }
+
         public object VisitBlockStmt(Stmt.Block stmt)
         {
             ExecuteBlock(stmt.statements, new Scope(scope));
             return null;
         }
+
         public object VisitBreakStmt(Stmt.Break stmt)
         {
-            throw new Break();
+            throw new Break(stmt.keyword);
         }
+
         public object VisitCallExpr(Expr.Call expr)
         {
             object callee = Evaluate(expr.callee);
 
             if (callee is not ICallable function)
-                return null;
+            {
+                if (raiseErrors)
+                    throw new RuntimeError(expr.paren, $"Cannot call {(callee == null ? "null" : resolver.Stringify(callee))}");
+                else
+                    return null;
+            }
 
             List<object> args = expr.arguments.Select(x => Evaluate(x)).ToList();
 
@@ -180,6 +242,7 @@ namespace Ream.Interpreting
 
             return function.Call(this, args);
         }
+
         public object VisitClassStmt(Stmt.Class stmt)
         {
             Scope scope = new(Globals);
@@ -198,26 +261,31 @@ namespace Ream.Interpreting
                     scope.Set(funStmt.name, function, funStmt.type);
                 }
             }
+
             Class clss = new(stmt.name.Raw, this, scope, staticScope);
             scope.Set(stmt.name, clss, VariableType.Global);
 
             return null;
         }
+
         public object VisitContinueStmt(Stmt.Continue stmt)
         {
-            throw new Continue();
+            throw new Continue(stmt.keyword);
         }
+
         public object VisitEvaluateStmt(Stmt.Evaluate stmt)
         {
             object obj = Evaluate(stmt.value);
             Program.Run(resolver.Stringify(obj));
             return null;
         }
+
         public object VisitExpressionStmt(Stmt.Expression stmt)
         {
             Evaluate(stmt.expression);
             return null;
         }
+
         public object VisitForStmt(Stmt.For stmt)
         {
             if (stmt.name != null)
@@ -237,8 +305,12 @@ namespace Ream.Interpreting
                         {
                             break;
                         }
-                        catch (Continue) { /* Don't care */ }
+                        catch (Continue)
+                        {
+                            /* Don't care */
+                        }
                     }
+
                     scope.FreeMemory();
                 }
                 finally
@@ -257,27 +329,41 @@ namespace Ream.Interpreting
                     {
                         break;
                     }
-                    catch (Continue) { /* Don't care */ }
+                    catch (Continue)
+                    {
+                        /* Don't care */
+                    }
                 }
 
             return null;
         }
+
         public object VisitFunctionStmt(Stmt.Function stmt)
         {
             Function function = new(stmt, scope);
             scope.Set(stmt.name, function, stmt.type);
             return null;
         }
+
         public object VisitGetExpr(Expr.Get expr)
         {
-            IPropable prop = resolver.GetPropable(Evaluate(expr.obj));
-            if (prop == null) return null;
+            object obj = Evaluate(expr.obj);
+            IPropable prop = resolver.GetPropable(obj);
+            if (prop == null)
+            {
+                if (raiseErrors)
+                    throw new RuntimeError(expr.name, $"Cannot map properties of {(obj == null ? "null" : resolver.Stringify(obj))}");
+                else
+                    return null;
+            }
             return prop.Get(expr.name);
         }
+
         public object VisitGroupingExpr(Expr.Grouping expr)
         {
             return Evaluate(expr.expression);
         }
+
         public object VisitIfStmt(Stmt.If stmt)
         {
             if (resolver.Truthy(Evaluate(stmt.condition)))
@@ -287,6 +373,7 @@ namespace Ream.Interpreting
 
             return null;
         }
+
         public object VisitImportStmt(Stmt.Import stmt)
         {
             string dllPath = stmt.name.Raw + ".dll";
@@ -313,23 +400,58 @@ namespace Ream.Interpreting
                 {
                     Program.RunFile(reamLibDataPath);
                 }
+                else
+                {
+                    if (raiseErrors)
+                        throw new RuntimeError(stmt.name, $"Unable to find library '{stmt.name.Raw}'");
+                }
             }
 
             return null;
         }
+
         public object VisitIndexerExpr(Expr.Indexer expr)
         {
-            return resolver.GetIndex(Evaluate(expr.callee), Evaluate(expr.index));
+            object index = Evaluate(expr.index);
+            if (index == null)
+            {
+                if (!raiseErrors)
+                    return null;
+                throw new RuntimeError(expr.paren, "Cannot index null");
+            }
+            return resolver.GetIndex(Evaluate(expr.callee), index);
         }
+
+        public object VisitDictionaryExpr(Expr.Dictionary expr)
+        {
+            Dictionary<object, object> items = new();
+            foreach (KeyValuePair<Expr, Expr> item in expr.items)
+            {
+                object key = Evaluate(item.Key);
+                if (key == null)
+                {
+                    if (raiseErrors)
+                        throw new RuntimeError(expr.paren, "Dictionary key cannot be null");
+                    else
+                        continue;
+                }
+                items[key] = Evaluate(item.Value);
+            }
+
+            return items;
+        }
+
         public object VisitLambdaExpr(Expr.Lambda expr)
         {
             Function function = new(expr, scope);
             return function;
         }
+
         public object VisitLiteralExpr(Expr.Literal expr)
         {
             return expr.value;
         }
+
         public object VisitLogicalExpr(Expr.Logical expr)
         {
             object left = Evaluate(expr.left);
@@ -347,10 +469,21 @@ namespace Ream.Interpreting
 
             return Evaluate(expr.right);
         }
+
         public object VisitMixerExpr(Expr.Mixer expr)
         {
-            return resolver.GetMix(Evaluate(expr.callee), Evaluate(expr.index), Evaluate(expr.value));
+            object index = Evaluate(expr.index);
+            object value = Evaluate(expr.value);
+            if (index == null)
+            {
+                if (!raiseErrors)
+                    return value;
+                throw new RuntimeError(expr.paren, "Cannot mix null");
+            }
+
+            return resolver.GetMix(Evaluate(expr.callee), index, value);
         }
+
         public object VisitTernaryExpr(Expr.Ternary expr)
         {
             if (expr.leftOperator.Type == TokenType.Question &&
@@ -364,6 +497,7 @@ namespace Ream.Interpreting
                 return null;
             }
         }
+
         public object VisitTranslateExpr(Expr.Translate expr)
         {
             return expr.@operator.Type switch
@@ -372,30 +506,41 @@ namespace Ream.Interpreting
                 _ => null
             };
         }
+
         public object VisitReturnStmt(Stmt.Return stmt)
         {
             object value = null;
             if (stmt.value != null) value = Evaluate(stmt.value);
 
-            throw new Return(value);
+            throw new Return(stmt.keyword, value);
         }
+
         public object VisitScriptStmt(Stmt.Script stmt)
         {
             string code = stmt.body.Literal.ToString();
 
             // TODO: Implement some functionality
-            
+
             return null;
         }
+
         public object VisitSequenceExpr(Expr.Sequence expr)
         {
             List<object> items = expr.items.Select(x => Evaluate(x)).ToList();
             return items;
         }
+
         public object VisitSetExpr(Expr.Set expr)
         {
-            IPropable prop = resolver.GetPropable(Evaluate(expr.obj));
-            if (prop == null) return null;
+            object obj = Evaluate(expr.obj);
+            IPropable prop = resolver.GetPropable(obj);
+            if (prop == null)
+            {
+                if (raiseErrors)
+                    throw new RuntimeError(expr.name, $"Cannot map properties of {(obj == null ? "null" : resolver.Stringify(obj))}");
+                else
+                    return null;
+            }
 
             VariableType type = prop.AutoDetectType(expr.name);
             object value = type.HasFlag(VariableType.Dynamic)
@@ -405,14 +550,17 @@ namespace Ream.Interpreting
             prop.Set(expr.name, value, type);
             return value;
         }
+
         public object VisitThisExpr(Expr.This expr)
         {
             return scope.Get(expr.keyword);
         }
+
         public object VisitTypedStmt(Stmt.Typed stmt)
         {
             return DeclareStmt(stmt.name, stmt.initializer, stmt.type);
         }
+
         public object VisitUnaryExpr(Expr.Unary expr)
         {
             object right = Evaluate(expr.right);
@@ -425,6 +573,7 @@ namespace Ream.Interpreting
                 _ => null,
             };
         }
+
         public object VisitVariableExpr(Expr.Variable expr)
         {
             object obj = scope.Get(expr.name);
@@ -438,6 +587,7 @@ namespace Ream.Interpreting
             else
                 return obj;
         }
+
         public object VisitWhileStmt(Stmt.While stmt)
         {
             while (resolver.Truthy(Evaluate(stmt.condition)))
@@ -450,8 +600,12 @@ namespace Ream.Interpreting
                 {
                     break;
                 }
-                catch (Continue) { /* Don't care */ }
+                catch (Continue)
+                {
+                    /* Don't care */
+                }
             }
+
             return null;
         }
     }

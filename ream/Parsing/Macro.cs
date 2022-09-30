@@ -1,6 +1,6 @@
 ﻿using Ream.Lexing;
 
-namespace ream.Parsing
+namespace Ream.Parsing
 {
     public class Macro
     {

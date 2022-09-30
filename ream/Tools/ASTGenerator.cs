@@ -7,17 +7,14 @@
             StreamWriter sw = new(outputPath);
             sw.AutoFlush = true;
 
-            sw.WriteLines(new string[]
-            {
-                "using Ream.Lexing;",
-                "using Ream.Interpreting;",
-                "using Ream.SDK;",
-                "",
-                $"namespace Ream.Parsing",
-                "{",
-               $"   [Serializable] public abstract class {baseName}",
-                "   {",
-            });
+            sw.WriteLine("using Ream.Lexing;");
+            sw.WriteLine("using Ream.Interpreting;");
+            sw.WriteLine("using Ream.SDK;");
+            sw.WriteLine("");
+            sw.WriteLine("namespace Ream.Parsing");
+            sw.WriteLine("{");
+            sw.WriteLine($"   [Serializable] public abstract class {baseName}");
+            sw.WriteLine("   {");
 
             sw.WriteLine("     public abstract T Accept<T>(Visitor<T> visitor);");
 

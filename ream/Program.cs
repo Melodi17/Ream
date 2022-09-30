@@ -1,5 +1,5 @@
 ﻿using System.Runtime.Serialization.Formatters.Binary;
-using ream;
+using Ream;
 using Ream.Interpreting;
 using Ream.Lexing;
 using Ream.Parsing;
@@ -51,23 +51,24 @@ namespace Ream
         {
             ASTGenerator.DefineAst(Path.Join("..", "..", "..", "Parsing", "ASTExpr.cs"), "Expr", new string[]
             {
-                "Assign    : Token name, Expr value",
-                "Binary    : Expr left, Token @operator, Expr right",
-                "Ternary   : Expr left, Token leftOperator, Expr middle, Token rightOperator, Expr right",
-                "Call      : Expr callee, Token paren, List<Expr> arguments",
-                "Indexer   : Expr callee, Token paren, Expr index",
-                "Mixer     : Expr callee, Token paren, Expr index, Expr value",
-                "Get       : Expr obj, Token name",
-                "Grouping  : Expr expression",
-                "Sequence  : List<Expr> items",
-                "Lambda    : List<Token> parameters, List<Stmt> body",
-                "Literal   : Object value",
-                "Logical   : Expr left, Token @operator, Expr right",
-                "Set       : Expr obj, Token name, Expr value",
-                "This      : Token keyword",
-                "Unary     : Token @operator, Expr right",
-                "Translate : Token @operator, Token name",
-                "Variable  : Token name"
+                "Assign     : Token name, Expr value",
+                "Binary     : Expr left, Token @operator, Expr right",
+                "Ternary    : Expr left, Token leftOperator, Expr middle, Token rightOperator, Expr right",
+                "Call       : Expr callee, Token paren, List<Expr> arguments",
+                "Indexer    : Expr callee, Token paren, Expr index",
+                "Mixer      : Expr callee, Token paren, Expr index, Expr value",
+                "Get        : Expr obj, Token name",
+                "Grouping   : Expr expression",
+                "Sequence   : List<Expr> items",
+                "Dictionary : Token paren, Dictionary<Expr,Expr> items",
+                "Lambda     : List<Token> parameters, List<Stmt> body",
+                "Literal    : Object value",
+                "Logical    : Expr left, Token @operator, Expr right",
+                "Set        : Expr obj, Token name, Expr value",
+                "This       : Token keyword",
+                "Unary      : Token @operator, Expr right",
+                "Translate  : Token @operator, Token name",
+                "Variable   : Token name"
             }.ToList());
 
             ASTGenerator.DefineAst(Path.Join("..", "..", "..", "Interpreting", "Stmt.cs"), "Stmt", new string[]
@@ -140,7 +141,7 @@ namespace Ream
 
                 Console.Write("> ");
                 string input = Console.ReadLine();
-                if (input.ToLower() == "exit")
+                if (input == null || input.ToLower() == "exit")
                     break;
                 Lexer lexer = new(input);
                 List<Token> tokens = lexer.Lex();
@@ -203,7 +204,10 @@ namespace Ream
         }
         public static void RuntimeError(RuntimeError error)
         {
-            Console.Error.WriteLine($"Error on line {error.Token.Line}: {error.Message}");
+            if (error.Token != null)
+                Console.Error.WriteLine($"Error on line {error.Token.Line}: {error.Message}");
+            else
+                Console.Error.WriteLine($"Error: {error.Message}");
             RuntimeErrorOccured = true;
         }
 

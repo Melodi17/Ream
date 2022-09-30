@@ -143,7 +143,8 @@ namespace Ream.Interpreting
             if (obj is double d) return new DoublePropMap(d);
             if (obj is bool b) return new BoolPropMap(b);
             if (obj is List<object> l) return new ListPropMap(l);
-
+            if (obj is Dictionary<object, object> dict) return new DictPropMap(dict);
+            
             return new AutoPropMap(obj);
         }
         public bool Truthy(object obj)

@@ -9,5 +9,9 @@ namespace Ream.Interpreting
         {
             this.Token = token;
         }
+        public RuntimeError(string message) : base(message)
+        {
+            this.Token = null;
+        }
     }
 }

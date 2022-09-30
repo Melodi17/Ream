@@ -7,6 +7,7 @@ namespace Ream.Interpreting
     {
         private static Dictionary<int, object> Memory = new();
         private static int nextKey = 0;
+        private List<ICallable> hooks = new(16);
 
         private int key;
         public Pointer(int key)
@@ -21,13 +22,32 @@ namespace Ream.Interpreting
         public void Dispose()
         {
             Memory.Remove(this.key);
+            hooks = null;
+        }
+        public void Hook(ICallable callable)
+        {
+            if (hooks.Count >= 16)
+            {
+                if (Program.Interpreter.raiseErrors)
+                    throw new RuntimeError("Maximum number of hooks reached for this pointer");
+                return;
+            }
+            hooks.Add(callable);
         }
         public object Get()
         {
+            if (hooks != null)
+                foreach (ICallable func in hooks)
+                    func.Call(Program.Interpreter, new List<object>() { 0 });
+            
             return Memory.ContainsKey(this.key) ? Memory[this.key] : null;
         }
         public void Set(object obj)
         {
+            if (hooks != null)
+                foreach (ICallable func in hooks)
+                    func.Call(Program.Interpreter, new List<object>() { 1, obj });
+            
             Memory[this.key] = obj;
         }
         public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal) => manualType;
@@ -98,7 +118,7 @@ namespace Ream.Interpreting
             }
             else if (type.HasFlag(VariableType.Local))
             {
-                if (Values.ContainsKey(keyName)) Values[keyName].Set(value); 
+                if (Values.ContainsKey(keyName)) Values[keyName].Set(value);
                 else Values[keyName] = new(value);
                 VariableData[key.Raw] = new(type, this);
             }

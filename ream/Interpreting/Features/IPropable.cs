@@ -28,7 +28,7 @@ namespace Ream.Interpreting
 
                     return item;
                 }
-            
+
             return null;
         }
         public static void Set(Token key, string id, object value)
@@ -176,6 +176,17 @@ namespace Ream.Interpreting
                 "Delete" => new ExternalFunction((i, j) => { Value.RemoveAt(((double)j[0]).ToInt()); return null; }, 1),
                 "Index" => new ExternalFunction((i, j) => (double)Value.IndexOf(j[0]), 1),
                 "Join" => new ExternalFunction((i, j) => string.Join(j[0].ToString(), Value), 1),
+                Resolver.OPERATOR_ADD => new ExternalFunction((i, j) =>
+                {
+                    if (j[0] is List<object> l)
+                    {
+                        List<object> res = new();
+                        res.AddRange(this.Value);
+                        res.AddRange(l);
+                        return res;
+                    }
+                    return null;
+                }, 1),
                 Resolver.OVERRIDE_STRINGIFY => new ExternalFunction((i, j) => "[" + string.Join(", ", Value.Select(x => Program.Interpreter.resolver.Stringify(x))) + "]", 0),
                 Resolver.OVERRIDE_INDEX => new ExternalFunction((i, j) => j[0] is double d ? Value.ElementAtOrDefault(Program.Interpreter.resolver.GetInt(d)) : null, 0),
                 Resolver.OVERRIDE_MIX => new ExternalFunction((i, j) =>
@@ -192,6 +203,41 @@ namespace Ream.Interpreting
                         return null;
                 }, 0),
                 Resolver.OVERRIDE_ITERATOR => new ExternalFunction((i, j) => Value, 0),
+                _ => ObjectType.Get(key, TypeID, this),
+            };
+        }
+
+        public void Set(Token key, object value, VariableType type = VariableType.Normal) { ObjectType.Set(key, TypeID, value); }
+    }
+    public class DictPropMap : IPropable
+    {
+        public const string TypeID = "dictionary";
+        public readonly Dictionary<object, object> Value;
+        public DictPropMap(Dictionary<object, object> value)
+        {
+            Value = value;
+        }
+        public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal)
+            => manualType;
+
+        public object Get(Token key)
+        {
+            return key.Raw switch
+            {
+                "Length" => (double)Value.Count,
+                "Contains" => new ExternalFunction((i, j) => Value.ContainsKey(j[0]), 1),
+                "Add" => new ExternalFunction((i, j) => { Value.Add(j[0], j[1]); return j[1]; }, 2),
+                "Remove" => new ExternalFunction((i, j) => Value.Remove(j[0]), 1),
+                "Keys" => Value.Keys.ToList(),
+                "Values" => Value.Values.ToList(),
+                Resolver.OVERRIDE_STRINGIFY => new ExternalFunction((i, j) => "{" + string.Join(", ", Value.Select(x => Program.Interpreter.resolver.Stringify(x.Key) + ": " + Program.Interpreter.resolver.Stringify(x.Value))) + "}", 0),
+                Resolver.OVERRIDE_INDEX => new ExternalFunction((i, j) => Value.ContainsKey(j[0]) ? Value[j[0]] : null, 0),
+                Resolver.OVERRIDE_MIX => new ExternalFunction((i, j) =>
+                {
+                    Value[j[0]] = j[1];
+                    return j[1];
+                }, 0),
+                Resolver.OVERRIDE_ITERATOR => new ExternalFunction((i, j) => Value.ToList(), 0),
                 _ => ObjectType.Get(key, TypeID, this),
             };
         }

@@ -18,6 +18,7 @@ namespace Ream.Parsing
          public T VisitGetExpr(Get expr);
          public T VisitGroupingExpr(Grouping expr);
          public T VisitSequenceExpr(Sequence expr);
+         public T VisitDictionaryExpr(Dictionary expr);
          public T VisitLambdaExpr(Lambda expr);
          public T VisitLiteralExpr(Literal expr);
          public T VisitLogicalExpr(Logical expr);
@@ -189,6 +190,23 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitSequenceExpr(this);
+          }
+      }
+
+     [Serializable] public class Dictionary : Expr
+      {
+     public readonly Token paren;
+     public readonly Dictionary<Expr,Expr> items;
+
+         public Dictionary(Token @operator, Dictionary<Expr,Expr> items)
+          {
+             this.paren = @operator;
+             this.items = items;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitDictionaryExpr(this);
           }
       }
 

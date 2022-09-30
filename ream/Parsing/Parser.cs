@@ -1,4 +1,4 @@
-﻿using ream.Parsing;
+﻿using Ream.Parsing;
 using Ream.Interpreting;
 using Ream.Lexing;
 using Ream.SDK;
@@ -330,8 +330,6 @@ namespace Ream.Parsing
                     Match(TokenType.Newline);
                     if (Check(TokenType.Right_Square))
                         break;
-                    if (items.Count >= 255)
-                        Error(Peek(), "Maximum of 255 items allowed");
 
                     if (Check(TokenType.Comma))
                         items.Add(new Expr.Literal(null));
@@ -340,9 +338,49 @@ namespace Ream.Parsing
                 } while (Match(TokenType.Comma, TokenType.Newline));
             }
 
-            Token paren = Consume(TokenType.Right_Square, "Expected ']' after arguments");
+            Token paren = Consume(TokenType.Right_Square, "Expected ']' after sequence");
 
             return new Expr.Sequence(items);
+        }
+        private Expr ExprFinishDictionary()
+        {
+            Dictionary<Expr, Expr> items = new();
+            if (!Check(TokenType.Right_Brace))
+            {
+                InsistEnd();
+                do
+                {
+                    Match(TokenType.Newline);
+                    if (Check(TokenType.Right_Brace))
+                        break;
+
+                    if (Check(TokenType.Comma))
+                        items.Add(new Expr.Literal(null),new Expr.Literal(null));
+                    else if (Check(TokenType.Colon))
+                    {
+                        Advance();
+                        items.Add(new Expr.Literal(null), Expression());
+                    }
+                    else
+                    {
+                        Expr key = Expression();
+                        Consume(TokenType.Colon, "Expected ':' after key");
+                        if (Check(TokenType.Comma) || Check(TokenType.Newline))
+                        {
+                            items.Add(key, new Expr.Literal(null));
+                        }
+                        else
+                        {
+                            Expr value = Expression();
+                            items.Add(key, value);
+                        }
+                    }
+                } while (Match(TokenType.Comma, TokenType.Newline));
+            }
+            
+            Token paren = Consume(TokenType.Right_Brace, "Expected '}' after dictionary");
+
+            return new Expr.Dictionary(paren, items);
         }
         private Expr ExprPrimary()
         {
@@ -359,10 +397,8 @@ namespace Ream.Parsing
                 Consume(TokenType.Right_Parenthesis, "Expected ')' after expression");
                 return new Expr.Grouping(expr);
             }
-            if (Match(TokenType.Left_Square))
-            {
-                return ExprFinishSequence();
-            }
+            if (Match(TokenType.Left_Square)) return ExprFinishSequence();
+            if (Match(TokenType.Left_Brace)) return ExprFinishDictionary();
             if (Match(TokenType.Identifier))
             {
                 return new Expr.Variable(Previous());
@@ -429,6 +465,8 @@ namespace Ream.Parsing
                     case TokenType.Function:
                     case TokenType.Global:
                     case TokenType.Return:
+                    case TokenType.Break:
+                    case TokenType.Continue:
                     case TokenType.Class:
                         return;
                 }

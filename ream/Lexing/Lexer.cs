@@ -20,6 +20,7 @@ namespace Ream.Lexing
             { "for", TokenType.For },
             { "while", TokenType.While },
             { "function", TokenType.Function },
+            { "func", TokenType.Function },
             { "lambda", TokenType.Lambda },
             { "global", TokenType.Global },
             { "local", TokenType.Local },

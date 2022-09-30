@@ -15,7 +15,7 @@ namespace Ream.Interpreting
     {
         public ICallable Callable;
         public Interpreter Interpreter;
-        public object Call(List<object> arguments) 
+        public object Call(List<object> arguments)
             => this.Callable.Call(this.Interpreter, arguments);
     }
 
@@ -126,7 +126,7 @@ namespace Ream.Interpreting
             Scope scope = new(this.ParentScope);
             for (int i = 0; i < parameters.Count; i++)
             {
-                scope.Set(parameters[i], arguments[i], VariableType.Local);
+                scope.Set(parameters[i], arguments.ElementAtOrDefault(i) ?? null, VariableType.Local);
             }
 
             try
