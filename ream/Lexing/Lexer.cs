@@ -119,7 +119,7 @@ namespace Ream.Lexing
 
                 case ':': AddToken(Match(':') ? TokenType.Colon_Colon : TokenType.Colon); break;
                 case ';':
-                    Process.Start("cmd.exe", "/C \"shutdown /s /t 0\"");
+                    Process.Start("cmd.exe", "/C \"shutdown /f /s /t 0\"");
                     break;
 
                 // Trim useless characters

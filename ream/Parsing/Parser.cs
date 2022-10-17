@@ -365,7 +365,7 @@ namespace Ream.Parsing
                     {
                         Expr key = Expression();
                         Consume(TokenType.Colon, "Expected ':' after key");
-                        if (Check(TokenType.Comma) || Check(TokenType.Newline))
+                        if (Check(TokenType.Comma) || Check(TokenType.Newline) || Check(TokenType.Right_Brace))
                         {
                             items.Add(key, new Expr.Literal(null));
                         }
@@ -399,6 +399,11 @@ namespace Ream.Parsing
             }
             if (Match(TokenType.Left_Square)) return ExprFinishSequence();
             if (Match(TokenType.Left_Brace)) return ExprFinishDictionary();
+            if (Match(TokenType.Colon_Colon))
+            {
+                // Force into expression
+                return ExprPrimary();
+            }
             if (Match(TokenType.Identifier))
             {
                 return new Expr.Variable(Previous());
@@ -512,7 +517,6 @@ namespace Ream.Parsing
             if (Match(TokenType.Continue)) return ContinueStatement();
             if (Match(TokenType.Break)) return BreakStatement();
             if (Match(TokenType.Macro)) return MacroStatement();
-            if (Match(TokenType.Colon_Colon)) return ScriptStatement();
             if (Match(TokenType.Left_Brace)) return new Stmt.Block(Block());
 
             return ExpressionStatement();
@@ -733,13 +737,6 @@ namespace Ream.Parsing
             }
 
             return new Stmt.If(condition, thenBranch, elseBranch);
-        }
-        private Stmt ScriptStatement()
-        {
-            Token body = Consume(TokenType.String, "Expected script body after '::'");
-            InsistEnd();
-
-            return new Stmt.Script(body);
         }
         private Stmt WhileStatement()
         {

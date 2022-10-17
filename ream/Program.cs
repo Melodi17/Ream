@@ -86,7 +86,6 @@ namespace Ream
                 "Import     : Token name",
                 "For        : Token name, Expr iterator, Stmt body",
                 "Evaluate   : Expr value",
-                "Script     : Token body",
             }.ToList());
 
             Console.WriteLine("[ASTGenerator] AST nodes Expr and Stmt have been updated");

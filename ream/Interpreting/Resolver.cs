@@ -152,7 +152,8 @@ namespace Ream.Interpreting
             if (obj == null) return false;
             if (obj is bool b) return b;
             if (obj is double d) return d > 0;
-            if (obj is IEnumerable<object> l) return l.Any();
+            if (obj is List<object> l) return l.Any();
+            if (obj is Dictionary<object, object> dic) return dic.Any();
             if (obj is string s) return s.Length > 0;
             return true;
         }

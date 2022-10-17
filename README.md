@@ -3,8 +3,17 @@
 
 The programming language that uses common sense to prevent you from typing more than you need, simple yet powerful.
 
-Check how to contribute and check change log [here](Development.md)
+Check how to contribute and check changelog [here](Development.md)
 
-You can join the official discord [here](https://discord.gg/ExAfTcf8Nt)
+You can join the official Discord [here](https://discord.gg/ExAfTcf8Nt)
 
-**Note:** New documentation and example will be released soon
+The GitHub is [here](https://github.com/Melodi17/ream)
+
+
+
+## Hello world
+
+Hello world is as easy as pie:
+
+![](img/hello_world.png)
+

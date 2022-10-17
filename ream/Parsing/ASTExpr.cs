@@ -198,9 +198,9 @@ namespace Ream.Parsing
      public readonly Token paren;
      public readonly Dictionary<Expr,Expr> items;
 
-         public Dictionary(Token @operator, Dictionary<Expr,Expr> items)
+         public Dictionary(Token paren, Dictionary<Expr,Expr> items)
           {
-             this.paren = @operator;
+             this.paren = paren;
              this.items = items;
           }
 

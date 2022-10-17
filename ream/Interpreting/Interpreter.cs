@@ -515,15 +515,6 @@ namespace Ream.Interpreting
             throw new Return(stmt.keyword, value);
         }
 
-        public object VisitScriptStmt(Stmt.Script stmt)
-        {
-            string code = stmt.body.Literal.ToString();
-
-            // TODO: Implement some functionality
-
-            return null;
-        }
-
         public object VisitSequenceExpr(Expr.Sequence expr)
         {
             List<object> items = expr.items.Select(x => Evaluate(x)).ToList();
