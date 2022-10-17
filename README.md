@@ -15,5 +15,8 @@ The GitHub is [here](https://github.com/Melodi17/ream)
 
 Hello world is as easy as pie:
 
-![](img/hello_world.png)
+```ream
+print('Hello world!')
+```
 
+This is identical to quite a few widely-used languages, b.
