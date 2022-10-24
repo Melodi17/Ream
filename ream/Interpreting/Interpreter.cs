@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
+using System.Text;
 using Ream.Lexing;
 using Ream.Parsing;
-using Ream.SDK;
 
 namespace Ream.Interpreting
 {
@@ -41,6 +41,11 @@ namespace Ream.Interpreting
                 Console.WriteLine(j[0] is string s ? s : resolver.Stringify(j[0]));
                 return null;
             }, 1);
+            DefineFunction("printf", (i, j) =>
+            {
+                Console.Write(j[0] is string s ? s : resolver.Stringify(j[0]));
+                return null;
+            }, 1);
             DefineFunction("read", (i, j) =>
             {
                 Console.Write(j[0] != null ? j[0] is string s ? s : resolver.Stringify(j[0]) : "");
@@ -51,6 +56,16 @@ namespace Ream.Interpreting
                 Thread.Sleep(j[0] is double d ? resolver.GetInt(d) : 0);
                 return null;
             }, 1);
+            DefineFunction("exit", (i, j) =>
+            {
+                Environment.Exit(j[0] is double d ? resolver.GetInt(d) : 0);
+                return null;
+            }, 1);
+            DefineFunction("clear", (i, j) =>
+            {
+                Console.Clear();
+                return null;
+            }, 0);
             DefineFunction("dispose", (i, j) =>
             {
                 if (j[0] is Pointer p) p.Dispose();
@@ -144,11 +159,35 @@ namespace Ream.Interpreting
                 Program.RuntimeError(error);
                 return null;
             }
+            catch (FlowControlError error)
+            {
+                if (raiseErrors)
+                    Program.RuntimeError(new RuntimeError(error.SourceToken, "Unexpected flow control jump."));
+
+                return null;
+            }
         }
 
-        private object Evaluate(Expr expr)
+        public object Evaluate(Expr expr)
         {
             return expr?.Accept(this);
+        }
+
+        public object Evaluate(Expr expr, Scope scope)
+        {
+            Scope previous = this.scope;
+            object res = null;
+            try
+            {
+                this.scope = scope;
+                res = expr?.Accept(this);
+                this.scope.FreeMemory();
+            }
+            finally
+            {
+                this.scope = previous;
+            }
+            return res;
         }
 
         public void ExecuteBlock(List<Stmt> statements, Scope scope)
@@ -176,7 +215,7 @@ namespace Ream.Interpreting
             stmt?.Accept(this);
         }
 
-        public object DeclareStmt(Token name, Expr initializer, VariableType type)
+        public object DeclareStmt(Token name, Expr initializer, VariableType type = VariableType.Normal)
         {
             VariableType autoType = scope.AutoDetectType(name, type);
 
@@ -193,7 +232,7 @@ namespace Ream.Interpreting
         public void LoadAssemblyLibrary(Assembly asm)
         {
             foreach (Type type in asm.GetTypes()
-                         .Where(x => x.GetCustomAttribute<ExternalClassAttribute>() != null))
+                         .Where(x => x.IsPublic))
             {
                 DefineClass(type);
                 //Globals.Define(type.Name, new ExternalClass(type, this), VariableType.Global);
@@ -207,7 +246,79 @@ namespace Ream.Interpreting
 
         public object VisitBinaryExpr(Expr.Binary expr)
         {
-            return resolver.Compare(Evaluate(expr.left), Evaluate(expr.right), expr.@operator.Type);
+            if (expr.@operator.Type is TokenType.Plus_Equal or TokenType.Minus_Equal or TokenType.Slash_Equal or TokenType.Star_Equal)
+            {
+                object left = Evaluate(expr.left);
+                object right = Evaluate(expr.right);
+                object result = resolver.Compare(left, right, expr.@operator.Type switch
+                {
+                    TokenType.Plus_Equal => TokenType.Plus,
+                    TokenType.Minus_Equal => TokenType.Minus,
+                    TokenType.Slash_Equal => TokenType.Slash,
+                    TokenType.Star_Equal => TokenType.Star,
+                });
+
+                if (expr.left is Expr.Variable variable)
+                {
+                    VariableType type = scope.AutoDetectType(variable.name, VariableType.Normal);
+                    if (type.HasFlag(VariableType.Dynamic))
+                    {
+                        if (!raiseErrors)
+                            return null;
+                        throw new RuntimeError(variable.name, "Cannot assign to a dynamic variable.");
+                    }
+                    if (type.HasFlag(VariableType.Final))
+                    {
+                        if (!raiseErrors)
+                            return null;
+                        throw new RuntimeError(variable.name, "Cannot assign to a final variable.");
+                    }
+
+                    scope.Set(variable.name, result, type);
+                }
+                else if (expr.left is Expr.Get get)
+                {
+                    object obj = Evaluate(get.obj);
+                    IPropable prop = resolver.GetPropable(obj);
+                    if (prop == null)
+                    {
+                        if (!raiseErrors)
+                            return null;
+                        throw new RuntimeError(get.name, $"Cannot map properties of {(obj == null ? "null" : resolver.Stringify(obj))}");
+                    }
+
+                    VariableType type = prop.AutoDetectType(get.name);
+                    if (type.HasFlag(VariableType.Dynamic))
+                    {
+                        if (!raiseErrors)
+                            return null;
+                        throw new RuntimeError(get.name, "Cannot assign to a dynamic variable.");
+                    }
+                    if (type.HasFlag(VariableType.Final))
+                    {
+                        if (!raiseErrors)
+                            return null;
+                        throw new RuntimeError(get.name, "Cannot assign to a final variable.");
+                    }
+
+                    prop.Set(get.name, result, type);
+                }
+                else if (expr.left is Expr.Indexer indexer)
+                {
+                    object index = Evaluate(indexer.index);
+                    if (index == null)
+                    {
+                        if (!raiseErrors)
+                            return null;
+                        throw new RuntimeError(indexer.paren, "Cannot mix null");
+                    }
+
+                    return resolver.GetMix(Evaluate(indexer.callee), index, result);
+                }
+                return result;
+            }
+            else
+                return resolver.Compare(Evaluate(expr.left), Evaluate(expr.right), expr.@operator.Type);
         }
 
         public object VisitBlockStmt(Stmt.Block stmt)
@@ -245,7 +356,7 @@ namespace Ream.Interpreting
 
         public object VisitClassStmt(Stmt.Class stmt)
         {
-            Scope scope = new(Globals);
+            Scope localScope = new(Globals);
             Scope staticScope = new(Globals);
             foreach (Stmt.Function funStmt in stmt.functions)
             {
@@ -257,12 +368,24 @@ namespace Ream.Interpreting
                 }
                 else
                 {
-                    function = new(funStmt, scope);
-                    scope.Set(funStmt.name, function, funStmt.type);
+                    function = new(funStmt, localScope);
+                    localScope.Set(funStmt.name, function, funStmt.type);
                 }
             }
 
-            Class clss = new(stmt.name.Raw, this, scope, staticScope);
+            foreach (Stmt.Typed typeStmt in stmt.variables)
+            {
+                object value = typeStmt.type.HasFlag(VariableType.Dynamic)
+                    ? typeStmt.initializer
+                    : Evaluate(typeStmt.initializer);
+
+                if (typeStmt.type.HasFlag(VariableType.Static))
+                    staticScope.Set(typeStmt.name, value, typeStmt.type);
+                else
+                    localScope.Set(typeStmt.name, value, typeStmt.type);
+            }
+
+            Class clss = new(stmt.name.Raw, this, localScope, staticScope);
             scope.Set(stmt.name, clss, VariableType.Global);
 
             return null;
@@ -345,6 +468,24 @@ namespace Ream.Interpreting
             return null;
         }
 
+        public object VisitMethodStmt(Stmt.Method stmt)
+        {
+            object obj = Evaluate(stmt.obj);
+            IPropable prop = resolver.GetPropable(obj);
+            if (prop == null)
+            {
+                if (raiseErrors)
+                    throw new RuntimeError(stmt.name, $"Cannot map properties of {(obj == null ? "null" : resolver.Stringify(obj))}");
+                else
+                    return null;
+            }
+
+            Function func = new(stmt, scope);
+
+            prop.Set(stmt.name, func, stmt.type);
+            return null;
+        }
+
         public object VisitGetExpr(Expr.Get expr)
         {
             object obj = Evaluate(expr.obj);
@@ -356,7 +497,9 @@ namespace Ream.Interpreting
                 else
                     return null;
             }
-            return prop.Get(expr.name);
+            object res = prop.Get(expr.name);
+            bool isDynamic = prop.AutoDetectType(expr.name).HasFlag(VariableType.Dynamic);
+            return isDynamic ? Evaluate(res as Expr) : res;
         }
 
         public object VisitGroupingExpr(Expr.Grouping expr)
@@ -376,7 +519,22 @@ namespace Ream.Interpreting
 
         public object VisitImportStmt(Stmt.Import stmt)
         {
-            string dllPath = stmt.name.Raw + ".dll";
+            if (!stmt.name.Any())
+                return null;
+            
+            StringBuilder sb = new();
+            foreach (Token item in stmt.name)
+            {
+                if (item.Type == TokenType.Identifier)
+                    sb.Append(item.Raw);
+                else if (item.Type == TokenType.Period)
+                    sb.Append('.');
+            }
+
+            string displayPath = sb.ToString();
+            string basePath = displayPath.Replace('.', Path.DirectorySeparatorChar);
+
+            string dllPath = basePath + ".dll";
             string dllLibDataPath = Path.Join(Program.LibDataPath, dllPath);
             if (File.Exists(dllPath))
             {
@@ -390,7 +548,7 @@ namespace Ream.Interpreting
             }
             else
             {
-                string reamPath = stmt.name.Raw + ".r";
+                string reamPath = basePath + ".r";
                 string reamLibDataPath = Path.Join(Program.LibDataPath, reamPath);
                 if (File.Exists(reamPath))
                 {
@@ -403,7 +561,7 @@ namespace Ream.Interpreting
                 else
                 {
                     if (raiseErrors)
-                        throw new RuntimeError(stmt.name, $"Unable to find library '{stmt.name.Raw}'");
+                        throw new RuntimeError(stmt.name.First(), $"Unable to find library '{displayPath}'");
                 }
             }
 
@@ -477,7 +635,7 @@ namespace Ream.Interpreting
             if (index == null)
             {
                 if (!raiseErrors)
-                    return value;
+                    return null;
                 throw new RuntimeError(expr.paren, "Cannot mix null");
             }
 

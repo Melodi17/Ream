@@ -9,7 +9,7 @@
 
             sw.WriteLine("using Ream.Lexing;");
             sw.WriteLine("using Ream.Interpreting;");
-            sw.WriteLine("using Ream.SDK;");
+            //sw.WriteLine("using Ream.SDK;");
             sw.WriteLine("");
             sw.WriteLine("namespace Ream.Parsing");
             sw.WriteLine("{");

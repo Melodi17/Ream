@@ -1,9 +1,18 @@
 ﻿using Ream.Lexing;
-using Ream.SDK;
 
 namespace Ream.Interpreting
 {
-    public static class VariableTypeExtensions 
+    [Flags]
+    public enum VariableType
+    {
+        Normal = 0x1,
+        Local = 0x2,
+        Global = 0x4,
+        Dynamic = 0x8,
+        Final = 0x16,
+        Static = 0x32
+    }
+    public static class VariableTypeExtensions
     {
         public static VariableType ToVariableType(this TokenType type)
             => type switch

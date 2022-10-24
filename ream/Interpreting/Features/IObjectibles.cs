@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using Ream.Interpreting;
 using Ream.Lexing;
-using Ream.SDK;
+using Ream.Parsing;
 
 namespace Ream.Interpreting
 {
@@ -13,11 +13,15 @@ namespace Ream.Interpreting
         public readonly Scope StaticScope;
         private readonly Func<KeyValuePair<string, object>, bool> GetNonStaticInitializer;
         private readonly Func<KeyValuePair<string, object>, bool> GetStaticInitializer;
+        public readonly Interpreter interpreter;
         public Class(string name, Interpreter interpreter, Scope scope, Scope staticScope)
         {
             this.Name = name;
             this.Scope = scope;
             this.StaticScope = staticScope;
+            this.interpreter = interpreter;
+
+            this.StaticScope.Define("this", this, VariableType.Normal);
 
             GetNonStaticInitializer = x =>
                 x.Key == Resolver.OVERRIDE_INSTANCE;
@@ -34,7 +38,7 @@ namespace Ream.Interpreting
             if (all.Any(GetStaticInitializer))
             {
                 Function initializer = all.First(GetStaticInitializer).Value as Function;
-                initializer.Bind(this).Call(interpreter, new());
+                initializer.Bind(this).Call(this.interpreter, new());
             }
         }
 
@@ -64,9 +68,21 @@ namespace Ream.Interpreting
             return inst;
         }
         public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal)
-            => StaticScope.AutoDetectType(key, manualType);
+        {
+            VariableType type = StaticScope.AutoDetectType(key, manualType);
+            if (type.HasFlag(VariableType.Dynamic))
+                return type & ~VariableType.Dynamic;
+            
+            return type;
+        }
+
         public object Get(Token key)
-            => StaticScope.Get(key);
+        {
+            if (StaticScope.AutoDetectType(key, VariableType.Normal).HasFlag(VariableType.Dynamic))
+                return interpreter.Evaluate(StaticScope.Get(key) as Expr, this.StaticScope);
+            
+            return StaticScope.Get(key);
+        }
 
         public void Set(Token key, object value, VariableType type = VariableType.Normal)
             => StaticScope.Set(key, value, type);
@@ -83,11 +99,16 @@ namespace Ream.Interpreting
         {
             Class = clss;
             this.scope = new(scope);
+
+            this.scope.Define("this", this);
         }
 
         public object Get(Token key)
         {
             object resp = scope.Get(key);
+            if (scope.AutoDetectType(key, VariableType.Normal).HasFlag(VariableType.Dynamic))
+                resp = Class.interpreter.Evaluate(resp as Expr, this.scope);
+            
             if (resp is Function c)
                 return c.Bind(this);
 
@@ -95,10 +116,18 @@ namespace Ream.Interpreting
         }
 
         public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal)
-            => scope.AutoDetectType(key, manualType);
+        {
+            VariableType type = scope.AutoDetectType(key, manualType);
+            if (type.HasFlag(VariableType.Dynamic))
+                return type & ~VariableType.Dynamic;
+
+            return scope.AutoDetectType(key, manualType);
+        }
 
         public void Set(Token key, object value, VariableType type = VariableType.Normal)
-        { scope.Set(key, value, type); }
+        {
+            scope.Set(key, value, type);
+        }
 
         public override string ToString()
         {
@@ -184,22 +213,25 @@ namespace Ream.Interpreting
             {
                 PropertyInfo prop = Type.GetProperties().FirstOrDefault(x =>
                 {
-                    var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
-                    if (attribute == null)
-                        return x.Name == key.Raw && x.IsStatic();
+                    //var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
+                    //if (attribute == null)
+                    //    return x.Name == key.Raw && x.IsStatic();
 
-                    return attribute.Name == key.Raw && attribute.Type.HasFlag(VariableType.Static);
+                    //return attribute.Name == key.Raw && attribute.Type.HasFlag(VariableType.Static);
+                    return x.Name == key.Raw && x.IsStatic();
                 });
                 if (prop != null)
-                    return prop.GetValue(null);
+                    if (prop.CanRead)
+                        return prop.GetValue(null);
 
                 FieldInfo field = Type.GetFields().FirstOrDefault(x =>
                 {
-                    var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
-                    if (attribute == null)
-                        return x.Name == key.Raw && x.IsStatic;
+                    //var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
+                    //if (attribute == null)
+                    //    return x.Name == key.Raw && x.IsStatic;
 
-                    return attribute.Name == key.Raw && attribute.Type.HasFlag(VariableType.Static);
+                    //return attribute.Name == key.Raw && attribute.Type.HasFlag(VariableType.Static);
+                    return x.Name == key.Raw && x.IsStatic;
                 });
                 if (field != null)
                     return field.GetValue(null);
@@ -212,27 +244,31 @@ namespace Ream.Interpreting
         {
             PropertyInfo prop = Type.GetProperties().FirstOrDefault(x =>
             {
-                var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
-                if (attribute == null)
-                    return x.Name == key.Raw && x.IsStatic();
-                return attribute.Name == key.Raw && attribute.Type.HasFlag(VariableType.Static);
+                //var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
+                //if (attribute == null)
+                //    return x.Name == key.Raw && x.IsStatic();
+                //return attribute.Name == key.Raw && attribute.Type.HasFlag(VariableType.Static);
+                return x.Name == key.Raw && x.IsStatic();
             });
             if (prop != null)
             {
-                prop.SetValue(null, value);
+                if (prop.CanWrite)
+                    prop.SetValue(null, value);
                 return;
             }
 
             FieldInfo field = Type.GetFields().FirstOrDefault(x =>
             {
-                var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
-                if (attribute == null)
-                    return x.Name == key.Raw && x.IsStatic;
-                return attribute.Name == key.Raw && attribute.Type.HasFlag(VariableType.Static);
+                //var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
+                //if (attribute == null)
+                //    return x.Name == key.Raw && x.IsStatic;
+                //return attribute.Name == key.Raw && attribute.Type.HasFlag(VariableType.Static);
+                return x.Name == key.Raw && x.IsStatic;
             });
             if (field != null)
             {
-                field.SetValue(null, value);
+                if (!field.Attributes.HasFlag(FieldAttributes.InitOnly))
+                    field.SetValue(null, value);
                 return;
             }
 
@@ -270,20 +306,23 @@ namespace Ream.Interpreting
             {
                 PropertyInfo prop = Class.Type.GetProperties().FirstOrDefault(x =>
                 {
-                    var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
-                    if (attribute == null)
-                        return x.Name == key.Raw && !x.IsStatic();
-                    return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+                    //var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
+                    //if (attribute == null)
+                    //    return x.Name == key.Raw && !x.IsStatic();
+                    //return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+                    return x.Name == key.Raw && !x.IsStatic();
                 });
                 if (prop != null)
-                    return prop.GetValue(Instance);
+                    if (prop.CanRead)
+                        return prop.GetValue(Instance);
 
                 FieldInfo field = Class.Type.GetFields().FirstOrDefault(x =>
                 {
-                    var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
-                    if (attribute == null)
-                        return x.Name == key.Raw && !x.IsStatic;
-                    return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+                    //var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
+                    //if (attribute == null)
+                    //    return x.Name == key.Raw && !x.IsStatic;
+                    //return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+                    return x.Name == key.Raw && !x.IsStatic;
                 });
                 if (field != null)
                     return field.GetValue(Instance);
@@ -296,27 +335,31 @@ namespace Ream.Interpreting
         {
             PropertyInfo prop = Class.Type.GetProperties().FirstOrDefault(x =>
             {
-                var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
-                if (attribute == null)
-                    return x.Name == key.Raw && !x.IsStatic();
-                return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+                //var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
+                //if (attribute == null)
+                //    return x.Name == key.Raw && !x.IsStatic();
+                //return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+                return x.Name == key.Raw && !x.IsStatic();
             });
             if (prop != null)
             {
-                prop.SetValue(Instance, value);
+                if (prop.CanWrite)
+                    prop.SetValue(Instance, value);
                 return;
             }
 
             FieldInfo field = Class.Type.GetFields().FirstOrDefault(x =>
             {
-                var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
-                if (attribute == null)
-                    return x.Name == key.Raw && !x.IsStatic;
-                return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+                //var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
+                //if (attribute == null)
+                //    return x.Name == key.Raw && !x.IsStatic;
+                //return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+                return x.Name == key.Raw && !x.IsStatic;
             });
             if (field != null)
             {
-                field.SetValue(Instance, value);
+                if (!field.Attributes.HasFlag(FieldAttributes.InitOnly))
+                    field.SetValue(Instance, value);
                 return;
             }
 
@@ -327,29 +370,5 @@ namespace Ream.Interpreting
     {
         public static bool IsStatic(this PropertyInfo source, bool nonPublic = false)
             => source.GetAccessors(nonPublic).Any(x => x.IsStatic);
-        public static ExternalVariableAttribute Apply(this ExternalVariableAttribute attrib, PropertyInfo info)
-        {
-            string name = attrib.Name;
-            VariableType type = attrib.Type;
-            if (attrib.Name == "")
-                name = info.Name;
-
-            if (info.IsStatic() && !attrib.Type.HasFlag(VariableType.Static))
-                type |= VariableType.Static;
-
-            return new(name, type);
-        }
-        public static ExternalVariableAttribute Apply(this ExternalVariableAttribute attrib, FieldInfo info)
-        {
-            string name = attrib.Name;
-            VariableType type = attrib.Type;
-            if (attrib.Name == "")
-                name = info.Name;
-
-            if (info.IsStatic && !attrib.Type.HasFlag(VariableType.Static))
-                type |= VariableType.Static;
-
-            return new(name, type);
-        }
     }
 }

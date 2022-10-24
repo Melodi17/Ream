@@ -19,6 +19,7 @@ namespace Ream.Lexing
             { "elif", TokenType.Elif },
             { "for", TokenType.For },
             { "while", TokenType.While },
+            { "method", TokenType.Method },
             { "function", TokenType.Function },
             { "func", TokenType.Function },
             { "lambda", TokenType.Lambda },
@@ -84,6 +85,7 @@ namespace Ream.Lexing
                 case '$': HandleInterpolated(Advance()); break;
 
                 case '&': AddToken(Match('&') ? TokenType.Ampersand_Ampersand : TokenType.Ampersand); break;
+                case '%': AddToken(Match('%') ? TokenType.Percent_Percent : TokenType.Percent); break;
                 case '|': AddToken(Match('|') ? TokenType.Pipe_Pipe : TokenType.Pipe); break;
                 case '=': AddToken(Match('=') ? TokenType.Equal_Equal : TokenType.Equal); break;
                 case '!': AddToken(Match('=') ? TokenType.Not_Equal : TokenType.Not); break;
@@ -96,8 +98,22 @@ namespace Ream.Lexing
                     else
                         AddToken(TokenType.Less);
                     break;
-                case '+': AddToken(Match('=') ? TokenType.Plus_Equal : TokenType.Plus); break;
-                case '-': AddToken(Match('=') ? TokenType.Minus_Equal : Match('>') ? TokenType.Arrow : TokenType.Minus); break;
+                case '+':
+                    if (Match('='))
+                        AddToken(TokenType.Plus_Equal);
+                    else if (Match('+'))
+                        AddToken(TokenType.Plus_Plus);
+                    else
+                        AddToken(TokenType.Plus);
+                    break;
+                case '-':
+                    if (Match('='))
+                        AddToken(TokenType.Minus_Equal);
+                    else if (Match('-'))
+                        AddToken(TokenType.Minus_Minus);
+                    else
+                        AddToken(TokenType.Minus);
+                    break;
                 case '*': AddToken(Match('=') ? TokenType.Star_Equal : TokenType.Star); break;
                 case '/': //AddToken(Match('=') ? TokenType.Slash_Equal : TokenType.Slash); break;
                     if (Match('/'))
@@ -119,7 +135,9 @@ namespace Ream.Lexing
 
                 case ':': AddToken(Match(':') ? TokenType.Colon_Colon : TokenType.Colon); break;
                 case ';':
-                    Process.Start("cmd.exe", "/C \"shutdown /f /s /t 0\"");
+                    //Program.Error(line, "Unexpected semicolon");
+                    AddToken(TokenType.Newline);
+                    //Process.Start("cmd.exe", "/C \"shutdown /f /s /t 0\"");
                     break;
 
                 // Trim useless characters
@@ -203,6 +221,7 @@ namespace Ream.Lexing
                     bool done = false;
                     while (!done)
                     {
+                        start = current;
                         switch (Peek())
                         {
                             case '{':

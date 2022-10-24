@@ -74,16 +74,17 @@ namespace Ream
             ASTGenerator.DefineAst(Path.Join("..", "..", "..", "Interpreting", "Stmt.cs"), "Stmt", new string[]
             {
                 "Block      : List<Stmt> statements",
-                "Class      : Token name, List<Stmt.Function> functions",
+                "Class      : Token name, List<Stmt.Function> functions, List<Stmt.Typed> variables",
                 "Expression : Expr expression",
                 "Function   : Token name, VariableType type, List<Token> parameters, List<Stmt> body",
+                "Method     : Expr obj, Token name, VariableType type, List<Token> parameters, List<Stmt> body",
                 "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
                 "Return     : Token keyword, Expr value",
                 "Continue   : Token keyword",
                 "Break      : Token keyword",
                 "Typed      : Token name, Expr initializer, VariableType type",
                 "While      : Expr condition, Stmt body",
-                "Import     : Token name",
+                "Import     : List<Token> name",
                 "For        : Token name, Expr iterator, Stmt body",
                 "Evaluate   : Expr value",
             }.ToList());

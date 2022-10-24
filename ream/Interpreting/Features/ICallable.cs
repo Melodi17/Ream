@@ -1,7 +1,6 @@
 ﻿using System.Reflection;
 using Ream.Lexing;
 using Ream.Parsing;
-using Ream.SDK;
 
 namespace Ream.Interpreting
 {
@@ -35,29 +34,14 @@ namespace Ream.Interpreting
 
         public ExternalFunction(MethodInfo info)
         {
-            var attribute = info.GetCustomAttribute<ExternalFunctionAttribute>();
-            if (attribute == null)
-            {
-                this._argumentCount = info.GetParameters().Length;
-                this._func = new Func<object, List<object>, object>((ctx, args) =>
-                     info.Invoke(ctx, args.ToArray()));
-                this.Type = VariableType.Normal;
-                if (info.IsStatic && !this.Type.HasFlag(VariableType.Static))
-                    this.Type |= VariableType.Static;
+            this._argumentCount = info.GetParameters().Length;
+            this._func = new Func<object, List<object>, object>((ctx, args) =>
+                 info.Invoke(ctx, args.ToArray()));
+            this.Type = VariableType.Normal;
+            if (info.IsStatic && !this.Type.HasFlag(VariableType.Static))
+                this.Type |= VariableType.Static;
 
-                this.Name = info.Name;
-            }
-            else
-            {
-                this._argumentCount = attribute.ArgumentCount == -1 ? info.GetParameters().Length : attribute.ArgumentCount;
-                this._func = new Func<object, List<object>, object>((ctx, args) =>
-                     info.Invoke(ctx, args.ToArray()));
-                this.Type = attribute.Type;
-                if (info.IsStatic && !this.Type.HasFlag(VariableType.Static))
-                    this.Type |= VariableType.Static;
-
-                this.Name = attribute.Name == "" ? info.Name : attribute.Name;
-            }
+            this.Name = info.Name;
         }
         public int ArgumentCount()
             => this._argumentCount;
@@ -89,6 +73,13 @@ namespace Ream.Interpreting
         public Function(Stmt.Function declaration, Scope scope)
         {
             //Declaration = declaration;
+            this.parameters = declaration.parameters;
+            this.body = declaration.body;
+            this.ParentScope = scope;
+        }
+
+        public Function(Stmt.Method declaration, Scope scope)
+        {
             this.parameters = declaration.parameters;
             this.body = declaration.body;
             this.ParentScope = scope;

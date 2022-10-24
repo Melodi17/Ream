@@ -1,7 +1,6 @@
 ﻿using System.Reflection;
 //using Ream.Interpreting.Features;
 using Ream.Lexing;
-using Ream.SDK;
 using Ream.Tools;
 
 namespace Ream.Interpreting
@@ -122,6 +121,7 @@ namespace Ream.Interpreting
                     ? 0D
                     : Value / d
                 : null, 1),
+                Resolver.OPERATOR_MODULUS => new ExternalFunction((i, j) => j[0] is double d ? Value % d : null, 1),
                 Resolver.OPERATOR_GREATER => new ExternalFunction((i, j) => j[0] is double d ? Value > d : null, 1),
                 Resolver.OPERATOR_LESS => new ExternalFunction((i, j) => j[0] is double d ? Value < d : null, 1),
                 _ => ObjectType.Get(key, TypeID, this),
@@ -291,20 +291,15 @@ namespace Ream.Interpreting
 
             PropertyInfo prop = Type.GetProperties().FirstOrDefault(x =>
             {
-                var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
-                if (attribute == null)
-                    return false;
-                return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+                return x.Name == key.Raw && !x.IsStatic();
             });
             if (prop != null)
-                return prop.GetValue(InternalValue);
+                if (prop.CanRead)
+                    return prop.GetValue(InternalValue);
 
             FieldInfo field = Type.GetFields().FirstOrDefault(x =>
             {
-                var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
-                if (attribute == null)
-                    return false;
-                return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+                return x.Name == key.Raw && !x.IsStatic;
             });
             if (field != null)
                 return field.GetValue(InternalValue);
@@ -316,27 +311,27 @@ namespace Ream.Interpreting
         {
             PropertyInfo prop = Type.GetProperties().FirstOrDefault(x =>
             {
-                var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
-                if (attribute == null)
-                    return false;
-                return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+                //var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
+                //if (attribute == null)
+                //    return false;
+                //return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+                return x.Name == key.Raw && !x.IsStatic();
             });
             if (prop != null)
             {
-                prop.SetValue(InternalValue, value);
+                if (prop.CanWrite)
+                    prop.SetValue(InternalValue, value);
                 return;
             }
 
             FieldInfo field = Type.GetFields().FirstOrDefault(x =>
             {
-                var attribute = x.GetCustomAttribute<ExternalVariableAttribute>()?.Apply(x);
-                if (attribute == null)
-                    return false;
-                return attribute.Name == key.Raw && !attribute.Type.HasFlag(VariableType.Static);
+                return x.Name == key.Raw && !x.IsStatic;
             });
             if (field != null)
             {
-                field.SetValue(InternalValue, value);
+                if (!field.Attributes.HasFlag(FieldAttributes.InitOnly))
+                    field.SetValue(InternalValue, value);
                 return;
             }
         }

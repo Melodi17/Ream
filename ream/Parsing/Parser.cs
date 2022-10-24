@@ -1,7 +1,5 @@
-﻿using Ream.Parsing;
-using Ream.Interpreting;
+﻿using Ream.Interpreting;
 using Ream.Lexing;
-using Ream.SDK;
 
 namespace Ream.Parsing
 {
@@ -105,6 +103,12 @@ namespace Ream.Parsing
 
                 Error(eq, $"Invalid assignment target {expr.GetType().Name}");
             }
+            else if (Match(TokenType.Plus_Equal, TokenType.Minus_Equal, TokenType.Slash_Equal, TokenType.Star_Equal))
+            {
+                Token op = Previous();
+                Expr right = ExprAssignment();
+                return new Expr.Binary(expr, op, right);
+            }
 
             return expr;
         }
@@ -190,16 +194,32 @@ namespace Ream.Parsing
         }
         private Expr ExprFactor()
         {
-            Expr expr = ExprUnary();
+            Expr expr = ExprIncrement();
 
-            while (Match(TokenType.Slash, TokenType.Star))
+            while (Match(TokenType.Slash, TokenType.Star, TokenType.Percent))
             {
                 Token op = Previous();
-                Expr right = ExprUnary();
+                Expr right = ExprIncrement();
                 expr = new Expr.Binary(expr, op, right);
             }
 
             return expr;
+        }
+        private Expr ExprIncrement()
+        {
+            Expr expr = ExprUnary();
+
+            if (Match(TokenType.Plus_Plus, TokenType.Minus_Minus))
+            {
+                Token op = Previous();
+                //return new Expr.Unary(op, expr);
+                return new Expr.Binary(expr,
+                    new Token(op.Type == TokenType.Plus_Plus ? TokenType.Plus_Equal : TokenType.Minus_Equal, op.Raw, op.Literal, op.Line),
+                    new Expr.Literal(1D));
+            }
+
+            return expr;
+
         }
         private Expr ExprUnary()
         {
@@ -250,8 +270,8 @@ namespace Ream.Parsing
             {
                 if (Match(TokenType.Left_Square))
                 {
-                    //Expr index = Expression();
-                    Expr index = ExprIndexer();
+                    Expr index = Expression();
+                    //Expr index = ExprIndexer();
 
                     Token paren = Consume(TokenType.Right_Square, "Expected ']' after index");
                     InsistEnd();
@@ -290,7 +310,7 @@ namespace Ream.Parsing
                         arguments.Add(new Expr.Literal(null));
                     else
                         arguments.Add(Expression());
-                    
+
                 } while (Match(TokenType.Newline, TokenType.Comma));
             }
 
@@ -302,7 +322,7 @@ namespace Ream.Parsing
         private Expr ExprFinishLambda()
         {
             List<Token> parameters = new();
-            if (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace)))
+            if (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace) || Check(TokenType.Colon)))
             {
                 do
                 {
@@ -310,13 +330,23 @@ namespace Ream.Parsing
                         Error(Peek(), "Maximum of 255 arguments allowed");
 
                     parameters.Add(Consume(TokenType.Identifier, "Expected parameter name"));
-                } while (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace)));
+                } while (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace) || Check(TokenType.Colon)));
             }
 
             InsistEnd();
 
-            Consume(TokenType.Left_Brace, "Expected '{' before lambda body");
-            List<Stmt> body = Block();
+            List<Stmt> body;
+            if (Match(TokenType.Colon))
+            {
+                Expr expr = Expression();
+                body = new() { new Stmt.Return(Previous(), expr) };
+            }
+            else
+            {
+                Consume(TokenType.Left_Brace, "Expected '{' after parameters");
+                body = Block();
+            }
+
             return new Expr.Lambda(parameters, body);
         }
         private Expr ExprFinishSequence()
@@ -355,7 +385,7 @@ namespace Ream.Parsing
                         break;
 
                     if (Check(TokenType.Comma))
-                        items.Add(new Expr.Literal(null),new Expr.Literal(null));
+                        items.Add(new Expr.Literal(null), new Expr.Literal(null));
                     else if (Check(TokenType.Colon))
                     {
                         Advance();
@@ -377,7 +407,7 @@ namespace Ream.Parsing
                     }
                 } while (Match(TokenType.Comma, TokenType.Newline));
             }
-            
+
             Token paren = Consume(TokenType.Right_Brace, "Expected '}' after dictionary");
 
             return new Expr.Dictionary(paren, items);
@@ -492,10 +522,13 @@ namespace Ream.Parsing
                     }
                     if (Match(TokenType.Function))
                         return FunctionDeclaration(dat);
+                    else if (Match(TokenType.Method))
+                        return FunctionDeclaration(dat, isMethod: true);
                     else
                         return VariableDeclaration<Stmt.Typed>(dat);
                 }
                 if (Match(TokenType.Function)) return FunctionDeclaration(VariableType.Normal);
+                if (Match(TokenType.Method)) return FunctionDeclaration(VariableType.Normal, isMethod: true);
                 if (Match(TokenType.Class)) return ClassDeclaration();
 
                 return Statement();
@@ -525,7 +558,7 @@ namespace Ream.Parsing
         {
             Token keyword = Previous();
             Expr value = null;
-            if (!Check(TokenType.Newline))
+            if (!(Check(TokenType.Newline) || Check(TokenType.Right_Brace)))
             {
                 value = Expression();
             }
@@ -555,7 +588,7 @@ namespace Ream.Parsing
 
             List<Token> body = new();
 
-            while (!Check(TokenType.Newline))
+            while (!Check(TokenType.Newline) && !AtEnd)
                 body.Add(Advance());
 
             InsistEnd();
@@ -605,7 +638,7 @@ namespace Ream.Parsing
         {
             List<Stmt> statements = new();
             InsistEnd();
-            while (!Check(TokenType.Right_Brace))
+            while (!(Check(TokenType.Right_Brace)))
             {
                 statements.Add(Declaration());
             }
@@ -614,19 +647,41 @@ namespace Ream.Parsing
             InsistEnd();
             return statements;
         }
-        private Stmt FunctionDeclaration(VariableType type, string defaultName = "")
+        private Stmt FunctionDeclaration(VariableType type, bool isMethod = false)
         {
+            Expr obj = null;
             Token name;
-            if (defaultName.Length == 0)
+
+            // Work out whether it is just a token or not
+            if (!isMethod
+                && Peek().Type == TokenType.Identifier
+                && Peek(1).Type is TokenType.Left_Brace or TokenType.Colon or TokenType.Newline)
+            {
                 name = Consume(TokenType.Identifier, "Expected function name");
+            }
+            // Its a method
             else
-                name = new Token(TokenType.Identifier, defaultName, null, 0);
+            {
+                obj = Expression();
+                if (obj is Expr.Get get)
+                {
+                    name = get.name;
+                    obj = get.obj;
+                }
+                else
+                    throw Error(Peek(), "Expected method name");
+            }
+
+            //if (defaultName.Length == 0)
+            //else
+            //    name = new Token(TokenType.Identifier, defaultName, null, 0);
 
             List<Token> parameters = new();
 
             if (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace)))
             {
-                if (defaultName.Length == 0) Consume(TokenType.Colon, "Expected ':' after function name");
+                //if (defaultName.Length == 0)
+                Consume(TokenType.Colon, "Expected ':' after function name");
 
                 do
                 {
@@ -641,7 +696,11 @@ namespace Ream.Parsing
 
             Consume(TokenType.Left_Brace, "Expected '{' before function body");
             List<Stmt> body = Block();
-            return new Stmt.Function(name, type, parameters, body);
+
+            if (obj == null)
+                return new Stmt.Function(name, type, parameters, body);
+            else
+                return new Stmt.Method(obj, name, type, parameters, body);
         }
         private Stmt VariableDeclaration<T>(VariableType type)
         {
@@ -677,6 +736,7 @@ namespace Ream.Parsing
             InsistEnd();
 
             List<Stmt.Function> functions = new();
+            List<Stmt.Typed> variables = new();
             while (!Check(TokenType.Right_Brace) && !AtEnd)
             {
                 if (Peek().Type.IsVariableType())
@@ -686,18 +746,45 @@ namespace Ream.Parsing
                     {
                         dat |= Advance().Type.ToVariableType();
                     }
-                    functions.Add(FunctionDeclaration(dat) as Stmt.Function);
+
+                    if (Match(TokenType.Function))
+                    {
+                        Stmt stmt = FunctionDeclaration(dat);
+                        if (stmt is Stmt.Function func)
+                            functions.Add(func);
+                        else if (stmt is Stmt.Method)
+                            Error(Previous(), "Expected function, got method");
+                        else
+                            Error(Previous(), "Expected function");
+                    }
+                    else if (Match(TokenType.Method))
+                    {
+                        Error(Previous(), "Methods are not allowed in classes");
+                    }
+                    else
+                        variables.Add(VariableDeclaration<Stmt.Typed>(dat) as Stmt.Typed);
                 }
                 else
                 {
-                    functions.Add(FunctionDeclaration(VariableType.Normal) as Stmt.Function);
+                    if (Match(TokenType.Function))
+                    {
+                        Stmt stmt = FunctionDeclaration(VariableType.Normal);
+                        if (stmt is Stmt.Function func)
+                            functions.Add(func);
+                        else if (stmt is Stmt.Method)
+                            Error(Previous(), "Expected function, got method");
+                        else
+                            Error(Previous(), "Expected function");
+                    }
+                    else
+                        variables.Add(VariableDeclaration<Stmt.Typed>(VariableType.Normal) as Stmt.Typed);
                 }
             }
 
             Consume(TokenType.Right_Brace, "Expected '}' after class body");
             InsistEnd();
 
-            return new Stmt.Class(name, functions);
+            return new Stmt.Class(name, functions, variables);
         }
         private Stmt ExpressionStatement()
         {
@@ -718,7 +805,10 @@ namespace Ream.Parsing
         }
         private Stmt ImportStatement()
         {
-            Token name = Consume(TokenType.Identifier, "Expected module name");
+            List<Token> name = new();
+            while (Check(TokenType.Identifier) || Check(TokenType.Period))
+                name.Add(Advance());
+
             InsistEnd();
             return new Stmt.Import(name);
         }

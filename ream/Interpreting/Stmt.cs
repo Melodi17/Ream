@@ -1,6 +1,5 @@
 using Ream.Lexing;
 using Ream.Interpreting;
-using Ream.SDK;
 
 namespace Ream.Parsing
 {
@@ -13,6 +12,7 @@ namespace Ream.Parsing
          public T VisitClassStmt(Class stmt);
          public T VisitExpressionStmt(Expression stmt);
          public T VisitFunctionStmt(Function stmt);
+         public T VisitMethodStmt(Method stmt);
          public T VisitIfStmt(If stmt);
          public T VisitReturnStmt(Return stmt);
          public T VisitContinueStmt(Continue stmt);
@@ -42,11 +42,13 @@ namespace Ream.Parsing
       {
      public readonly Token name;
      public readonly List<Stmt.Function> functions;
+     public readonly List<Stmt.Typed> variables;
 
-         public Class(Token name, List<Stmt.Function> functions)
+         public Class(Token name, List<Stmt.Function> functions, List<Stmt.Typed> variables)
           {
              this.name = name;
              this.functions = functions;
+             this.variables = variables;
           }
 
           public override T Accept<T>(Visitor<T> visitor)
@@ -88,6 +90,29 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitFunctionStmt(this);
+          }
+      }
+
+     [Serializable] public class Method : Stmt
+      {
+     public readonly Expr obj;
+     public readonly Token name;
+     public readonly VariableType type;
+     public readonly List<Token> parameters;
+     public readonly List<Stmt> body;
+
+         public Method(Expr obj, Token name, VariableType type, List<Token> parameters, List<Stmt> body)
+          {
+             this.obj = obj;
+             this.name = name;
+             this.type = type;
+             this.parameters = parameters;
+             this.body = body;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitMethodStmt(this);
           }
       }
 
@@ -195,9 +220,9 @@ namespace Ream.Parsing
 
      [Serializable] public class Import : Stmt
       {
-     public readonly Token name;
+     public readonly List<Token> name;
 
-         public Import(Token name)
+         public Import(List<Token> name)
           {
              this.name = name;
           }

@@ -8,10 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="SDK\SDK.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="ream_square_icon.ico" />
   </ItemGroup>
 

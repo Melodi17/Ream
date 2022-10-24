@@ -21,6 +21,7 @@ namespace Ream.Interpreting
         public const string OPERATOR_SUBTRACT = "~subtract";
         public const string OPERATOR_MULTIPLY = "~multiply";
         public const string OPERATOR_DIVIDE = "~divide";
+        public const string OPERATOR_MODULUS = "~modulus";
         public const string OPERATOR_GREATER = "~greater";
         public const string OPERATOR_LESS = "~less";
 
@@ -68,6 +69,16 @@ namespace Ream.Interpreting
                         IPropable prop = GetPropable(left);
                         if (prop != null)
                             if (prop.Get(OPERATOR_DIVIDE) is ICallable func)
+                                return func.Call(interpreter, new() { right });
+
+                        return null;
+                    }
+
+                case TokenType.Percent:
+                    {
+                        IPropable prop = GetPropable(left);
+                        if (prop != null)
+                            if (prop.Get(OPERATOR_MODULUS) is ICallable func)
                                 return func.Call(interpreter, new() { right });
 
                         return null;
