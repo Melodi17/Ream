@@ -155,7 +155,7 @@ namespace Ream.Interpreting
             if (obj is bool b) return new BoolPropMap(b);
             if (obj is List<object> l) return new ListPropMap(l);
             if (obj is Dictionary<object, object> dict) return new DictPropMap(dict);
-            
+
             return new AutoPropMap(obj);
         }
         public bool Truthy(object obj)
@@ -166,7 +166,29 @@ namespace Ream.Interpreting
             if (obj is List<object> l) return l.Any();
             if (obj is Dictionary<object, object> dic) return dic.Any();
             if (obj is string s) return s.Length > 0;
+            if (obj is Prototype pt) return pt.Truthy();
             return true;
+        }
+
+        public string GetType(object obj)
+        {
+            return obj switch
+            {
+                null => "null",
+                bool _ => "Boolean",
+                double _ => "Number",
+                string _ => "String",
+                List<object> _ => "Sequence",
+                Dictionary<object, object> _ => "Dictionary",
+                Prototype _ => "Prototype",
+                Pointer _ => "Pointer",
+                Class c => c.Name,
+                ClassInstance c => c.Class.Name,
+                ExternalClass c => c.Type.Name,
+                ExternalClassInstance c => c.Class.Type.Name,
+                ICallable _ => "Callable",
+                _ => "Object",
+            };
         }
 
         public string Stringify(object obj)
@@ -179,6 +201,19 @@ namespace Ream.Interpreting
             }
 
             return obj?.ToString();
+        }
+
+        public object ToNative(Type t, object obj)
+        {
+            if (obj == null) return null;
+            if (t == typeof(bool) && obj is not bool) return Truthy(obj);
+            if (t == typeof(string) && obj is not string) return Stringify(obj);
+            if (t == typeof(byte)
+                && t == typeof(short)
+                && t == typeof(int)
+                && t == typeof(long)
+                && obj is double d) return GetInt(d);
+            return obj;
         }
 
         public List<object> GetIterator(object obj)

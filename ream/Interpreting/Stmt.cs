@@ -120,12 +120,14 @@ namespace Ream.Parsing
       {
      public readonly Expr condition;
      public readonly Stmt thenBranch;
+     public readonly List<(Expr,Stmt)> elifBranches;
      public readonly Stmt elseBranch;
 
-         public If(Expr condition, Stmt thenBranch, Stmt elseBranch)
+         public If(Expr condition, Stmt thenBranch, List<(Expr,Stmt)> elifBranches, Stmt elseBranch)
           {
              this.condition = condition;
              this.thenBranch = thenBranch;
+             this.elifBranches = elifBranches;
              this.elseBranch = elseBranch;
           }
 

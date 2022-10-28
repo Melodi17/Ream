@@ -819,6 +819,16 @@ namespace Ream.Parsing
 
             Stmt thenBranch = Statement();
 
+            List<(Expr, Stmt)> elifBranches = new();
+            while (Match(TokenType.Elif))
+            {
+                InsistEnd();
+                Expr elifCondition = Expression();
+                InsistEnd();
+                Stmt elifBranch = Statement();
+                elifBranches.Add((elifCondition, elifBranch));
+            }
+
             Stmt elseBranch = null;
             if (Match(TokenType.Else))
             {
@@ -826,7 +836,7 @@ namespace Ream.Parsing
                 elseBranch = Statement();
             }
 
-            return new Stmt.If(condition, thenBranch, elseBranch);
+            return new Stmt.If(condition, thenBranch, elifBranches, elseBranch);
         }
         private Stmt WhileStatement()
         {

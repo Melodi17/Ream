@@ -236,6 +236,8 @@ namespace Ream.Interpreting
                 if (field != null)
                     return field.GetValue(null);
 
+                
+
                 return null;
             }
         }
@@ -252,6 +254,9 @@ namespace Ream.Interpreting
             });
             if (prop != null)
             {
+                // If it wants a string, stringify it first
+                value = Program.Interpreter.resolver.ToNative(prop.PropertyType, value);
+
                 if (prop.CanWrite)
                     prop.SetValue(null, value);
                 return;
@@ -267,6 +272,9 @@ namespace Ream.Interpreting
             });
             if (field != null)
             {
+                // If it wants a string, stringify it first
+                value = Program.Interpreter.resolver.ToNative(field.FieldType, value);
+
                 if (!field.Attributes.HasFlag(FieldAttributes.InitOnly))
                     field.SetValue(null, value);
                 return;
@@ -285,6 +293,16 @@ namespace Ream.Interpreting
             Class = clss;
             Scope = scope;
             Instance = Activator.CreateInstance(Class.Type, aruments.ToArray());
+
+            // Bind all the functions to the instance and re-assign
+            foreach (KeyValuePair<string, object> pair in Scope.All())
+            {
+                if (pair.Value is ExternalFunction func)
+                {
+                    func.Bind(Instance);
+                    Scope.Set(pair.Key, func);
+                }
+            }
         }
         public VariableType AutoDetectType(Token key, VariableType manualType = VariableType.Normal)
             => Scope.AutoDetectType(key, manualType);
@@ -294,11 +312,6 @@ namespace Ream.Interpreting
             if (Scope.Has(key.Raw))
             {
                 object resp = Scope.Get(key);
-                if (resp is ExternalFunction c)
-                {
-                    ExternalFunction fun = c.Bind(Instance);
-                    return fun;
-                }
 
                 return resp;
             }
@@ -343,6 +356,9 @@ namespace Ream.Interpreting
             });
             if (prop != null)
             {
+                // If it wants a string, stringify it first
+                value = Program.Interpreter.resolver.ToNative(prop.PropertyType, value);
+
                 if (prop.CanWrite)
                     prop.SetValue(Instance, value);
                 return;
@@ -358,6 +374,9 @@ namespace Ream.Interpreting
             });
             if (field != null)
             {
+                // If it wants a string, stringify it first
+                value = Program.Interpreter.resolver.ToNative(field.FieldType, value);
+
                 if (!field.Attributes.HasFlag(FieldAttributes.InitOnly))
                     field.SetValue(Instance, value);
                 return;

@@ -304,6 +304,13 @@ namespace Ream.Interpreting
             if (field != null)
                 return field.GetValue(InternalValue);
 
+            MethodInfo method = Type.GetMethods().FirstOrDefault(x =>
+            {
+                return x.Name == key.Raw && !x.IsStatic;
+            });
+            if (method != null)
+                return new ExternalFunction(method).Bind(InternalValue);
+
             return null;
         }
 
@@ -367,6 +374,11 @@ namespace Ream.Interpreting
         public void Set(Token key, object value, VariableType type = VariableType.Normal)
         {
             Set(key.Raw, value);
+        }
+
+        public bool Truthy()
+        {
+            return Values.Count > 0;
         }
 
         public override string ToString() => $"prototype with {Values.Count}";

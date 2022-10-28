@@ -25,6 +25,7 @@ namespace Ream.Interpreting
         public VariableType Type;
         private int _argumentCount;
         public object ClassRef;
+        private MethodInfo mi;
         private ExternalFunction() { }
         public ExternalFunction(Func<object, List<object>, object> func, int argumentCount)
         {
@@ -34,6 +35,7 @@ namespace Ream.Interpreting
 
         public ExternalFunction(MethodInfo info)
         {
+            this.mi = info;
             this._argumentCount = info.GetParameters().Length;
             this._func = new Func<object, List<object>, object>((ctx, args) =>
                  info.Invoke(ctx, args.ToArray()));
@@ -48,6 +50,17 @@ namespace Ream.Interpreting
 
         public object Call(Interpreter interpreter, List<object> arguments)
         {
+            // Attempt to cast all the types for it
+            if (mi != null)
+            {
+                ParameterInfo[] parameters = this.mi.GetParameters();
+                for (int i = 0; i < parameters.Length; i++)
+                {
+                    ParameterInfo item = parameters[i];
+                    arguments[i] = interpreter.resolver.ToNative(item.ParameterType, arguments[i]);
+                }
+            }
+
             return this._func.Invoke(this.ClassRef, arguments);
         }
 

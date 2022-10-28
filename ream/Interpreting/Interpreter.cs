@@ -9,10 +9,6 @@ namespace Ream.Interpreting
     {
         public static bool Strict = false;
     }
-    public class Refraction
-    {
-        // TODO: Add various functions for self-inspection
-    }
 
     public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
     {
@@ -32,25 +28,11 @@ namespace Ream.Interpreting
             DefineObject("Boolean", new ObjectType(BoolPropMap.TypeID));
             DefineObject("Sequence", new ObjectType(ListPropMap.TypeID));
             DefineObject("Dictionary", new ObjectType(DictPropMap.TypeID));
-            //DefineObject("Function", new ObjectType("function"));
+            //DefineObject("Callable", new ObjectType("callable"));
 
 
             DefineClass<Flags>();
-            DefineFunction("print", (i, j) =>
-            {
-                Console.WriteLine(j[0] is string s ? s : resolver.Stringify(j[0]));
-                return null;
-            }, 1);
-            DefineFunction("printf", (i, j) =>
-            {
-                Console.Write(j[0] is string s ? s : resolver.Stringify(j[0]));
-                return null;
-            }, 1);
-            DefineFunction("read", (i, j) =>
-            {
-                Console.Write(j[0] != null ? j[0] is string s ? s : resolver.Stringify(j[0]) : "");
-                return Console.ReadLine();
-            }, 1);
+   
             DefineFunction("wait", (i, j) =>
             {
                 Thread.Sleep(j[0] is double d ? resolver.GetInt(d) : 0);
@@ -61,11 +43,7 @@ namespace Ream.Interpreting
                 Environment.Exit(j[0] is double d ? resolver.GetInt(d) : 0);
                 return null;
             }, 1);
-            DefineFunction("clear", (i, j) =>
-            {
-                Console.Clear();
-                return null;
-            }, 0);
+  
             DefineFunction("dispose", (i, j) =>
             {
                 if (j[0] is Pointer p) p.Dispose();
@@ -81,6 +59,7 @@ namespace Ream.Interpreting
                     p.Hook(func);
                 return null;
             }, 2);
+            DefineFunction("type", (i, j) => resolver.GetType(j[0]), 1);
         }
 
         public void DefineObject(string key, object value)
@@ -510,9 +489,28 @@ namespace Ream.Interpreting
         public object VisitIfStmt(Stmt.If stmt)
         {
             if (resolver.Truthy(Evaluate(stmt.condition)))
+            {
                 Execute(stmt.thenBranch);
-            else if (stmt.elseBranch != null)
+                return null;
+            }
+            
+            if (stmt.elifBranches.Any())
+            {
+                foreach ((Expr condition, Stmt body) in stmt.elifBranches)
+                {
+                    if (resolver.Truthy(Evaluate(condition)))
+                    {
+                        Execute(body);
+                        return null;
+                    }
+                }
+            }
+            
+            if (stmt.elseBranch != null)
+            {
                 Execute(stmt.elseBranch);
+                return null;
+            }
 
             return null;
         }
@@ -521,7 +519,7 @@ namespace Ream.Interpreting
         {
             if (!stmt.name.Any())
                 return null;
-            
+
             StringBuilder sb = new();
             foreach (Token item in stmt.name)
             {

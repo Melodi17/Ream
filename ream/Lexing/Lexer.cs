@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Ream.Interpreting;
+﻿using Ream.Interpreting;
 //using Ream.Interpreting.Features;
 
 namespace Ream.Lexing
@@ -352,16 +351,17 @@ namespace Ream.Lexing
         }
         private void HandleInterger()
         {
-            while (char.IsDigit(Peek())) Advance();
+            //while (char.IsDigit(Peek())) Advance();
+            while (char.IsDigit(Peek()) || Peek() == '_') Advance();
 
-            if (Peek() == '.' && char.IsDigit(Peek(1)))
+            if (Peek() == '.' && (char.IsDigit(Peek(1)) || Peek(1) == '_'))
             {
                 Advance();
 
-                while (char.IsDigit(Peek())) Advance();
+                while (char.IsDigit(Peek()) || Peek() == '_') Advance();
             }
 
-            AddToken(TokenType.Interger, double.Parse(Source.Between(start, current)));
+            AddToken(TokenType.Interger, double.Parse(Source.Between(start, current).Replace("_", "")));
         }
         private void HandleIdentifier()
         {
