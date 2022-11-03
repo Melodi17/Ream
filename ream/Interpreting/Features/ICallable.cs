@@ -61,7 +61,17 @@ namespace Ream.Interpreting
                 }
             }
 
-            return this._func.Invoke(this.ClassRef, arguments);
+            try
+            {
+                return this._func.Invoke(this.ClassRef, arguments);
+            }
+            catch (Exception)
+            {
+                if (interpreter.raiseErrors)
+                    throw new RuntimeError("Can't call external function");
+
+                return null;
+            }
         }
 
         public ExternalFunction Bind(object clss)

@@ -8,6 +8,26 @@ namespace Ream.Interpreting
     public class Flags
     {
         public static bool Strict = false;
+        public static void Exit(int? code)
+        {
+            Environment.Exit(code ?? 0);
+        }
+        public static void Dispose(Pointer p)
+        {
+            p.Dispose();
+        }
+        public static void Hook(Pointer p, ICallable func)
+        {
+            p.Hook(func);
+        }
+        public static double Size()
+        {
+            return (double)Pointer.GetPointerCount();
+        }
+        public static string Type(object obj)
+        {
+            return Program.Interpreter.resolver.GetType(obj);
+        }
     }
 
     public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
@@ -32,34 +52,6 @@ namespace Ream.Interpreting
 
 
             DefineClass<Flags>();
-   
-            DefineFunction("wait", (i, j) =>
-            {
-                Thread.Sleep(j[0] is double d ? resolver.GetInt(d) : 0);
-                return null;
-            }, 1);
-            DefineFunction("exit", (i, j) =>
-            {
-                Environment.Exit(j[0] is double d ? resolver.GetInt(d) : 0);
-                return null;
-            }, 1);
-  
-            DefineFunction("dispose", (i, j) =>
-            {
-                if (j[0] is Pointer p) p.Dispose();
-                return null;
-            }, 1);
-            DefineFunction("size", (i, j) =>
-            {
-                return (double)Pointer.GetPointerCount();
-            }, 0);
-            DefineFunction("hook", (i, j) =>
-            {
-                if (j[0] is Pointer p && j[1] is ICallable func)
-                    p.Hook(func);
-                return null;
-            }, 2);
-            DefineFunction("type", (i, j) => resolver.GetType(j[0]), 1);
         }
 
         public void DefineObject(string key, object value)
