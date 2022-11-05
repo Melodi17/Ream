@@ -12,6 +12,12 @@ You can join the official Discord [here](https://discord.gg/ExAfTcf8Nt)
 
 The GitHub is [here](https://github.com/Melodi17/ream)
 
+The Box package manager can be found here [here](https://github.com/Melodi17/Box)
+
+
+
+**Note:** I'm going to move this to the GitHub docs soon, I noticed how messy it looks in the README :skull:
+
 
 
 ### Getting Started
@@ -254,11 +260,45 @@ while x < 15 {
 
 
 
-##### For loop — TODO
+##### For loop
+
+A for loop iterates through the given array until it runs out of items. It can optionally store the current item in a variable:
+
+```ream
+import IO
+
+// Without storage variable
+for 10 {
+	IO.Println('Hi!')
+}
+
+// With storage variable
+for i : 10 {
+	IO.Println(i)
+}
+```
+
+Note that the number in these loops is being iterated through. This can be substituted for any object that implements the `~iterator` overload (see [Ream—Overview—Elaboration—Overloads—Iterator](#Iterator)), e.g. strings, lists, dictionaries.
+
+The `continue` and `break` statements can be used here as well (see [Ream—Overview—Fundamentals—Syntax—While loop](#While loop)).
+
+
 
 ##### Variables — TODO
 
-##### Functions/Methods — TODO
+##### Functions/Methods
+
+Functions and Methods are callables, like most languages, they allow simplification of the flow of code. Functions can be declared like this:
+
+```ream
+import IO
+
+function say : user message {
+	IO.Println(user + ': ' + message)
+}
+```
+
+ This function (say), supports 2 parameters (user and message). If a function requires no parameters, the colon `:` and everything until the `{` can be ommited.
 
 ##### Classes — TODO
 
