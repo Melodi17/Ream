@@ -298,7 +298,20 @@ function say : user message {
 }
 ```
 
- This function (say), supports 2 parameters (user and message). If a function requires no parameters, the colon `:` and everything until the `{` can be ommited.
+ This function (say), supports 2 parameters (user and message). If a function requires no parameters, the colon `:` and everything until the `{` can be omitted. Methods can either be implicitly or explicitly declared, either using the `function` or `method` keyword respectively, they allow for setting an object's property to the function. Like this:
+
+```ream
+import IO
+
+pt = <>
+function pt.SayHi : target {
+	IO.Println('Hi ' + target)
+}
+
+pt.SayHi()
+```
+
+They are …
 
 ##### Classes — TODO
 
