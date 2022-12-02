@@ -284,7 +284,21 @@ The `continue` and `break` statements can be used here as well (see [Ream—Over
 
 
 
-##### Variables — TODO
+##### Variables and Scope
+
+Variables are boxes for storing values, they can be accessed with an identifier, this identifier cannot be a reserved keyword within the language. They can be created or modified by giving them a value:
+
+```ream
+// Create/modify variable
+myvar = 'Hello world'
+
+// Access variable's value
+myvar
+```
+
+When a variable is declared, it belongs to the scope it is located in, it cannot be accessed from scopes above it, unless the `global` attribute is applied to it. When assignment takes place, the interpreter will check parent scopes for the existence of the variable, unless the `local` attribute is applied, if it doesn't exist, it will be considered a declaration, else, it will just assign to the existing one.
+
+
 
 ##### Functions/Methods
 
@@ -311,7 +325,13 @@ function pt.SayHi : target {
 pt.SayHi()
 ```
 
-They are …
+
+
+##### Method chaining
+
+Method chaining allows for 
+
+
 
 ##### Classes — TODO
 
@@ -406,4 +426,3 @@ The static attribute signifies to the class (if it is in one), that the variable
 TODO:
 
 - Mention indexing an Number returns indexer
-- Mention the way Sequences and Dictionaries can be used without commas and colons
