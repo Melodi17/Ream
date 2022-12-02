@@ -2,6 +2,10 @@
 
 <img src="img/Ream.png" style="zoom:10%;" />
 
+[TOC]
+
+
+
 ## Overview
 
 The programming language for our sanity. Simple, but powerful, the language offers a large range of features that enhance the development experience.
