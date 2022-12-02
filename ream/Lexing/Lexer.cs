@@ -110,6 +110,8 @@ namespace Ream.Lexing
                         AddToken(TokenType.Minus_Equal);
                     else if (Match('-'))
                         AddToken(TokenType.Minus_Minus);
+                    else if (Match('>'))
+                        AddToken(TokenType.Chain);
                     else
                         AddToken(TokenType.Minus);
                     break;

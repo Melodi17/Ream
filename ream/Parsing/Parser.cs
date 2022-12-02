@@ -98,7 +98,7 @@ namespace Ream.Parsing
                 }
                 else if (expr is Expr.Indexer indexer)
                 {
-                    return new Expr.Mixer(indexer.callee, indexer.paren, indexer.index, value);
+                    return new Expr.Mixer(indexer, value);
                 }
 
                 Error(eq, $"Invalid assignment target {expr.GetType().Name}");
@@ -254,6 +254,14 @@ namespace Ream.Parsing
                     Token name = Consume(TokenType.Identifier, "Expected property name after '.'");
                     expr = new Expr.Get(expr, name);
                 }
+                else if (Match(TokenType.Chain))
+                {
+                    // Chainable method calls, like this, a->b()->c(), where a is the object, b is the method, and c is the method
+                    Token name = Consume(TokenType.Identifier, "Expected method name after '->'");
+                    Consume(TokenType.Left_Parenthesis, "Expected '(' after method name");
+                    Expr.Call call = (Expr.Call)ExprFinishCall(new Expr.Get(expr, name));
+                    expr = new Expr.Chain(call);
+                }
                 else
                 {
                     break;
@@ -283,6 +291,14 @@ namespace Ream.Parsing
                 {
                     Token name = Consume(TokenType.Identifier, "Expected property name after '.'");
                     expr = new Expr.Get(expr, name);
+                }
+                else if (Match(TokenType.Chain))
+                {
+                    // Chainable method calls, like this, a->b()->c(), where a is the object, b is the method, and c is the method
+                    Token name = Consume(TokenType.Identifier, "Expected method name after '->'");
+                    Consume(TokenType.Left_Parenthesis, "Expected '(' after method name");
+                    Expr.Call call = (Expr.Call)ExprFinishCall(new Expr.Get(expr, name));
+                    expr = new Expr.Chain(call);
                 }
                 else
                 {

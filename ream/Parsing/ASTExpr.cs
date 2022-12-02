@@ -15,6 +15,7 @@ namespace Ream.Parsing
          public T VisitIndexerExpr(Indexer expr);
          public T VisitMixerExpr(Mixer expr);
          public T VisitGetExpr(Get expr);
+         public T VisitChainExpr(Chain expr);
          public T VisitGroupingExpr(Grouping expr);
          public T VisitSequenceExpr(Sequence expr);
          public T VisitDictionaryExpr(Dictionary expr);
@@ -126,16 +127,12 @@ namespace Ream.Parsing
 
      [Serializable] public class Mixer : Expr
       {
-     public readonly Expr callee;
-     public readonly Token paren;
-     public readonly Expr index;
+     public readonly Expr.Indexer indexer;
      public readonly Expr value;
 
-         public Mixer(Expr callee, Token paren, Expr index, Expr value)
+         public Mixer(Expr.Indexer indexer, Expr value)
           {
-             this.callee = callee;
-             this.paren = paren;
-             this.index = index;
+             this.indexer = indexer;
              this.value = value;
           }
 
@@ -159,6 +156,21 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitGetExpr(this);
+          }
+      }
+
+     [Serializable] public class Chain : Expr
+      {
+     public readonly Expr.Call call;
+
+         public Chain(Expr.Call call)
+          {
+             this.call = call;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitChainExpr(this);
           }
       }
 

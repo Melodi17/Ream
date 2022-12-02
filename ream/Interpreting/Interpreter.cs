@@ -620,16 +620,16 @@ namespace Ream.Interpreting
 
         public object VisitMixerExpr(Expr.Mixer expr)
         {
-            object index = Evaluate(expr.index);
+            object index = Evaluate(expr.indexer.index);
             object value = Evaluate(expr.value);
             if (index == null)
             {
                 if (!raiseErrors)
                     return null;
-                throw new RuntimeError(expr.paren, "Cannot mix null");
+                throw new RuntimeError(expr.indexer.paren, "Cannot mix null");
             }
 
-            return resolver.GetMix(Evaluate(expr.callee), index, value);
+            return resolver.GetMix(Evaluate(expr.indexer.callee), index, value);
         }
 
         public object VisitTernaryExpr(Expr.Ternary expr)
@@ -746,6 +746,43 @@ namespace Ream.Interpreting
             }
 
             return null;
+        }
+
+        public object VisitChainExpr(Expr.Chain expr)
+        {
+            Expr.Get getExpr = (Expr.Get)expr.call.callee;
+
+            object obj = Evaluate(getExpr.obj);
+            IPropable prop = resolver.GetPropable(obj);
+            if (prop == null)
+            {
+                if (raiseErrors)
+                    throw new RuntimeError(getExpr.name, $"Cannot map properties of {(obj == null ? "null" : resolver.Stringify(obj))}");
+                else
+                    return null;
+            }
+            object res = prop.Get(getExpr.name);
+            bool isDynamic = prop.AutoDetectType(getExpr.name).HasFlag(VariableType.Dynamic);
+
+            object callee = isDynamic ? Evaluate(res as Expr) : res;
+
+            if (callee is not ICallable function)
+            {
+                if (raiseErrors)
+                    throw new RuntimeError(expr.call.paren, $"Cannot call {(callee == null ? "null" : resolver.Stringify(callee))}");
+                else
+                    return callee;
+            }
+
+            List<object> args = expr.call.arguments.Select(x => Evaluate(x)).ToList();
+
+            int count = function.ArgumentCount();
+            if (count > 0)
+                while (args.Count < count)
+                    args.Add(null);
+
+            function.Call(this, args);
+            return obj;
         }
     }
 }
