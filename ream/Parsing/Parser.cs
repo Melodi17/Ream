@@ -83,6 +83,8 @@ namespace Ream.Parsing
         {
             Expr expr = ExprTernary();
 
+            InsistEnd();
+
             if (Match(TokenType.Equal))
             {
                 Token eq = Previous();
@@ -116,6 +118,8 @@ namespace Ream.Parsing
         {
             Expr expr = ExprOr();
 
+            InsistEnd();
+
             if (Match(TokenType.Question))
             {
                 Token leftOperator = Previous();
@@ -131,6 +135,8 @@ namespace Ream.Parsing
         {
             Expr expr = ExprAnd();
 
+            InsistEnd();
+
             while (Match(TokenType.Pipe_Pipe))
             {
                 Token op = Previous();
@@ -143,6 +149,8 @@ namespace Ream.Parsing
         private Expr ExprAnd()
         {
             Expr expr = ExprEquality();
+
+            InsistEnd();
 
             while (Match(TokenType.Ampersand_Ampersand))
             {
@@ -157,6 +165,8 @@ namespace Ream.Parsing
         {
             Expr expr = ExprComparison();
 
+            InsistEnd();
+
             while (Match(TokenType.Not_Equal, TokenType.Equal_Equal))
             {
                 Token op = Previous();
@@ -169,6 +179,8 @@ namespace Ream.Parsing
         private Expr ExprComparison()
         {
             Expr expr = ExprTerm();
+
+            InsistEnd();
 
             while (Match(TokenType.Greater, TokenType.Greater_Equal, TokenType.Less, TokenType.Less_Equal))
             {
@@ -183,6 +195,8 @@ namespace Ream.Parsing
         {
             Expr expr = ExprFactor();
 
+            InsistEnd();
+
             while (Match(TokenType.Plus, TokenType.Minus))
             {
                 Token op = Previous();
@@ -196,6 +210,8 @@ namespace Ream.Parsing
         {
             Expr expr = ExprIncrement();
 
+            InsistEnd();
+
             while (Match(TokenType.Slash, TokenType.Star, TokenType.Percent))
             {
                 Token op = Previous();
@@ -208,6 +224,8 @@ namespace Ream.Parsing
         private Expr ExprIncrement()
         {
             Expr expr = ExprUnary();
+
+            InsistEnd();
 
             if (Match(TokenType.Plus_Plus, TokenType.Minus_Minus))
             {
@@ -223,12 +241,16 @@ namespace Ream.Parsing
         }
         private Expr ExprUnary()
         {
+            InsistEnd();
+            
             if (Match(TokenType.Not, TokenType.Minus, TokenType.Pipe))
             {
                 Token op = Previous();
                 Expr right = ExprUnary();
                 return new Expr.Unary(op, right);
             }
+
+            InsistEnd();
 
             if (Match(TokenType.Ampersand))
             {
@@ -242,6 +264,8 @@ namespace Ream.Parsing
         private Expr ExprCall()
         {
             Expr expr = ExprPrimary();
+
+            InsistEnd();
 
             while (true)
             {
@@ -274,8 +298,11 @@ namespace Ream.Parsing
         {
             Expr expr = ExprCall();
 
+
             while (true)
             {
+                InsistEnd();
+
                 if (Match(TokenType.Left_Square))
                 {
                     Expr index = Expression();
