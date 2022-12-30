@@ -9,23 +9,23 @@
 
         public Token(TokenType type, string raw, object value, int line)
         {
-            Type = type;
-            Raw = raw;
-            Literal = value;
-            Line = line;
+            this.Type = type;
+            this.Raw = raw;
+            this.Literal = value;
+            this.Line = line;
         }
 
         public Token(string raw)
         {
-            Type = TokenType.Identifier;
-            Raw = raw;
-            Literal = null;
-            Line = -1;
+            this.Type = TokenType.Identifier;
+            this.Raw = raw;
+            this.Literal = null;
+            this.Line = -1;
         }
 
         public override string ToString()
         {
-            return $"{Type} {Raw} {Literal}";
+            return $"{this.Type} {this.Raw} {this.Literal}";
         }
 
         public static implicit operator Token(string raw)

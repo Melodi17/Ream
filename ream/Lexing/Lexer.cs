@@ -6,7 +6,7 @@ namespace Ream.Lexing
     public class Lexer
     {
         public string Source;
-        public bool AtEnd => current >= Source.Length;
+        public bool AtEnd => this.current >= this.Source.Length;
         private readonly List<Token> tokens;
         private int start;
         private int current;
@@ -42,102 +42,121 @@ namespace Ream.Lexing
 
         public Lexer(string source)
         {
-            Source = source;
-            tokens = new();
-            start = 0;
-            current = 0;
-            line = 1;
+            this.Source = source;
+            this.tokens = new();
+            this.start = 0;
+            this.current = 0;
+            this.line = 1;
         }
 
         public List<Token> Lex()
         {
-            while (!AtEnd)
+            while (!this.AtEnd)
             {
-                start = current;
-                LexToken();
+                this.start = this.current;
+                this.LexToken();
             }
 
-            tokens.Add(new(TokenType.End, "", null, line));
-            return tokens;
+            this.tokens.Add(new(TokenType.End, "", null, this.line));
+            return this.tokens;
         }
 
         private void LexToken()
         {
-            char c = Advance();
+            char c = this.Advance();
             switch (c)
             {
-                case '(': AddToken(TokenType.Left_Parenthesis); break;
-                case ')': AddToken(TokenType.Right_Parenthesis); break;
-                case '{': AddToken(TokenType.Left_Brace); break;
-                case '}': AddToken(TokenType.Right_Brace); break;
-                case '[': AddToken(TokenType.Left_Square); break;
-                case ']': AddToken(TokenType.Right_Square); break;
-                case ',': AddToken(TokenType.Comma); break;
-                case '.': AddToken(TokenType.Period); break;
-                case '?': AddToken(TokenType.Question); break;
+                case '(':
+                    this.AddToken(TokenType.Left_Parenthesis); break;
+                case ')':
+                    this.AddToken(TokenType.Right_Parenthesis); break;
+                case '{':
+                    this.AddToken(TokenType.Left_Brace); break;
+                case '}':
+                    this.AddToken(TokenType.Right_Brace); break;
+                case '[':
+                    this.AddToken(TokenType.Left_Square); break;
+                case ']':
+                    this.AddToken(TokenType.Right_Square); break;
+                case ',':
+                    this.AddToken(TokenType.Comma); break;
+                case '.':
+                    this.AddToken(TokenType.Period); break;
+                case '?':
+                    this.AddToken(TokenType.Question); break;
                 case '\\':
-                    if (Peek() == '\n')
-                        Advance();
+                    if (this.Peek() == '\n')
+                        this.Advance();
                     else
-                        Program.Error(line, "Expected newline character after '\\'");
+                        Program.Error(this.line, "Expected newline character after '\\'");
                     break;
-                case '$': HandleInterpolated(Advance()); break;
+                case '$':
+                    this.HandleInterpolated(this.Advance()); break;
 
-                case '&': AddToken(Match('&') ? TokenType.Ampersand_Ampersand : TokenType.Ampersand); break;
-                case '%': AddToken(Match('%') ? TokenType.Percent_Percent : TokenType.Percent); break;
-                case '|': AddToken(Match('|') ? TokenType.Pipe_Pipe : TokenType.Pipe); break;
-                case '=': AddToken(Match('=') ? TokenType.Equal_Equal : TokenType.Equal); break;
-                case '!': AddToken(Match('=') ? TokenType.Not_Equal : TokenType.Not); break;
-                case '>': AddToken(Match('=') ? TokenType.Greater_Equal : TokenType.Greater); break;
+                case '&':
+                    this.AddToken(this.Match('&') ? TokenType.Ampersand_Ampersand : TokenType.Ampersand); break;
+                case '%':
+                    this.AddToken(this.Match('%') ? TokenType.Percent_Percent : TokenType.Percent); break;
+                case '|':
+                    this.AddToken(this.Match('|') ? TokenType.Pipe_Pipe : TokenType.Pipe); break;
+                case '=':
+                    this.AddToken(this.Match('=') ? TokenType.Equal_Equal : TokenType.Equal); break;
+                case '!':
+                    this.AddToken(this.Match('=') ? TokenType.Not_Equal : TokenType.Not); break;
+                case '>':
+                    this.AddToken(this.Match('=') ? TokenType.Greater_Equal : TokenType.Greater); break;
                 case '<':
-                    if (Match('='))
-                        AddToken(TokenType.Less_Equal);
-                    else if (Match('>'))
-                        AddToken(TokenType.Prototype, new Prototype());
+                    if (this.Match('='))
+                        this.AddToken(TokenType.Less_Equal);
+                    else if (this.Match('>'))
+                        this.AddToken(TokenType.Prototype, new Prototype());
                     else
-                        AddToken(TokenType.Less);
+                        this.AddToken(TokenType.Less);
                     break;
                 case '+':
-                    if (Match('='))
-                        AddToken(TokenType.Plus_Equal);
-                    else if (Match('+'))
-                        AddToken(TokenType.Plus_Plus);
+                    if (this.Match('='))
+                        this.AddToken(TokenType.Plus_Equal);
+                    else if (this.Match('+'))
+                        this.AddToken(TokenType.Plus_Plus);
                     else
-                        AddToken(TokenType.Plus);
+                        this.AddToken(TokenType.Plus);
                     break;
                 case '-':
-                    if (Match('='))
-                        AddToken(TokenType.Minus_Equal);
-                    else if (Match('-'))
-                        AddToken(TokenType.Minus_Minus);
-                    else if (Match('>'))
-                        AddToken(TokenType.Chain);
+                    if (this.Match('='))
+                        this.AddToken(TokenType.Minus_Equal);
+                    else if (this.Match('-'))
+                        this.AddToken(TokenType.Minus_Minus);
+                    else if (this.Match('>'))
+                        this.AddToken(TokenType.Chain);
                     else
-                        AddToken(TokenType.Minus);
+                        this.AddToken(TokenType.Minus);
                     break;
-                case '*': AddToken(Match('=') ? TokenType.Star_Equal : TokenType.Star); break;
+                case '*':
+                    this.AddToken(this.Match('=') ? TokenType.Star_Equal : TokenType.Star); break;
                 case '/': //AddToken(Match('=') ? TokenType.Slash_Equal : TokenType.Slash); break;
-                    if (Match('/'))
-                        while (Peek() != '\n' && !AtEnd) Advance();
-                    else if (Match('*'))
+                    if (this.Match('/'))
+                        while (this.Peek() != '\n' && !this.AtEnd)
+                            this.Advance();
+                    else if (this.Match('*'))
                     {
-                        while (Peek() != '*' && Peek(1) != '/' && !AtEnd) Advance();
-                        if (!AtEnd)
+                        while (this.Peek() != '*' && this.Peek(1) != '/' && !this.AtEnd) this.Advance();
+                        if (!this.AtEnd)
                         {
-                            Advance();
-                            Advance();
+                            this.Advance();
+                            this.Advance();
                         }
                     }
-                    else if (Match('='))
-                        AddToken(TokenType.Slash_Equal);
+                    else if (this.Match('='))
+                        this.AddToken(TokenType.Slash_Equal);
                     else
-                        AddToken(TokenType.Slash);
+                        this.AddToken(TokenType.Slash);
                     break;
 
-                case ':': AddToken(Match(':') ? TokenType.Colon_Colon : TokenType.Colon); break;
+                case ':':
+                    this.AddToken(this.Match(':') ? TokenType.Colon_Colon : TokenType.Colon); break;
                 case ';':
                     //Program.Error(line, "Unexpected semicolon");
-                    AddToken(TokenType.Newline);
+                    this.AddToken(TokenType.Newline);
                     //Process.Start("cmd.exe", "/C \"shutdown /f /s /t 0\"");
                     break;
 
@@ -148,24 +167,24 @@ namespace Ream.Lexing
                     break;
 
                 case '\n':
-                    AddToken(TokenType.Newline);
-                    line++;
+                    this.AddToken(TokenType.Newline);
+                    this.line++;
                     break;
 
                 // Literals
                 case '\'':
                 case '\"':
-                    HandleString(c);
+                    this.HandleString(c);
                     break;
 
                 default:
                     if (char.IsDigit(c))
-                        HandleInterger();
-                    else if (ValidIdentifierChar(c))
-                        HandleIdentifier();
+                        this.HandleInterger();
+                    else if (this.ValidIdentifierChar(c))
+                        this.HandleIdentifier();
                     else
                     {
-                        Program.Error(line, $"Unexpected character '{c}'");
+                        Program.Error(this.line, $"Unexpected character '{c}'");
                     }
                     break;
             }
@@ -173,57 +192,57 @@ namespace Ream.Lexing
 
         private char Advance()
         {
-            current++;
-            return Source[current - 1];
+            this.current++;
+            return this.Source[this.current - 1];
         }
 
         private void AddToken(TokenType type)
         {
-            AddToken(type, null);
+            this.AddToken(type, null);
         }
 
         private void AddToken(TokenType type, object value)
         {
-            string text = Source.Between(start, current);
-            tokens.Add(new(type, text, value, line));
+            string text = this.Source.Between(this.start, this.current);
+            this.tokens.Add(new(type, text, value, this.line));
         }
 
         private bool Match(char c)
         {
-            if (AtEnd) return false;
-            if (Source[current] != c) return false;
+            if (this.AtEnd) return false;
+            if (this.Source[this.current] != c) return false;
 
-            current++;
+            this.current++;
             return true;
         }
         private char Peek(int n = 0)
         {
-            if (current + n >= Source.Length) return '\0';
-            return Source[current + n];
+            if (this.current + n >= this.Source.Length) return '\0';
+            return this.Source[this.current + n];
         }
         private void HandleInterpolated(char st)
         {
             string text = "";
             bool escaped = false;
-            while (!AtEnd)
+            while (!this.AtEnd)
             {
-                char ch = Peek();
-                if (ch == '\n') line++;
+                char ch = this.Peek();
+                if (ch == '\n') this.line++;
                 if (ch == '{' && !escaped)
                 {
-                    start++;
-                    AddToken(TokenType.String, text);
-                    Advance();
-                    start = current;
-                    AddToken(TokenType.Plus, '+');
-                    AddToken(TokenType.Left_Parenthesis, '(');
+                    this.start++;
+                    this.AddToken(TokenType.String, text);
+                    this.Advance();
+                    this.start = this.current;
+                    this.AddToken(TokenType.Plus, '+');
+                    this.AddToken(TokenType.Left_Parenthesis, '(');
                     text = "";
                     int level = 1;
                     bool done = false;
                     while (!done)
                     {
-                        start = current;
-                        switch (Peek())
+                        this.start = this.current;
+                        switch (this.Peek())
                         {
                             case '{':
                                 level++;
@@ -233,17 +252,17 @@ namespace Ream.Lexing
                                 level--;
                                 if (level == 0)
                                 {
-                                    Advance();
-                                    start = current;
-                                    AddToken(TokenType.Right_Parenthesis, ')');
-                                    AddToken(TokenType.Plus, '+');
+                                    this.Advance();
+                                    this.start = this.current;
+                                    this.AddToken(TokenType.Right_Parenthesis, ')');
+                                    this.AddToken(TokenType.Plus, '+');
                                     done = true;
                                     break;
                                 }
                                 break;
 
                             default:
-                                LexToken();
+                                this.LexToken();
                                 break;
                         }
                     }
@@ -271,12 +290,12 @@ namespace Ream.Lexing
                             break;
 
                         default:
-                            Program.Error(line, "Unknown escape character");
+                            Program.Error(this.line, "Unknown escape character");
                             break;
                     }
                 }
                 if (escaped) escaped = false;
-                Advance();
+                this.Advance();
                 if (ch == '\\' && !escaped)
                 {
                     escaped = true;
@@ -286,25 +305,25 @@ namespace Ream.Lexing
                 text += ch;
             }
 
-            if (AtEnd)
+            if (this.AtEnd)
             {
-                Program.Error(line, "Unterminated string");
+                Program.Error(this.line, "Unterminated string");
                 return;
             }
 
-            Advance();
+            this.Advance();
 
             //Source.Between(start + 1, current - 1);
-            AddToken(TokenType.String, text);
+            this.AddToken(TokenType.String, text);
         }
         private void HandleString(char st)
         {
             string text = "";
             bool escaped = false;
-            while (!AtEnd)
+            while (!this.AtEnd)
             {
-                char ch = Peek();
-                if (ch == '\n') line++;
+                char ch = this.Peek();
+                if (ch == '\n') this.line++;
                 if (ch == st && !escaped) break;
                 if (escaped)
                 {
@@ -325,12 +344,12 @@ namespace Ream.Lexing
                             break;
 
                         default:
-                            Program.Error(line, "Unknown escape character");
+                            Program.Error(this.line, "Unknown escape character");
                             break;
                     }
                 }
                 if (escaped) escaped = false;
-                Advance();
+                this.Advance();
                 if (ch == '\\' && !escaped)
                 {
                     escaped = true;
@@ -340,38 +359,38 @@ namespace Ream.Lexing
                 text += ch;
             }
 
-            if (AtEnd)
+            if (this.AtEnd)
             {
-                Program.Error(line, "Unterminated string");
+                Program.Error(this.line, "Unterminated string");
                 return;
             }
 
-            Advance();
+            this.Advance();
 
             //Source.Between(start + 1, current - 1);
-            AddToken(TokenType.String, text);
+            this.AddToken(TokenType.String, text);
         }
         private void HandleInterger()
         {
             //while (char.IsDigit(Peek())) Advance();
-            while (char.IsDigit(Peek()) || Peek() == '_') Advance();
+            while (char.IsDigit(this.Peek()) || this.Peek() == '_') this.Advance();
 
-            if (Peek() == '.' && (char.IsDigit(Peek(1)) || Peek(1) == '_'))
+            if (this.Peek() == '.' && (char.IsDigit(this.Peek(1)) || this.Peek(1) == '_'))
             {
-                Advance();
+                this.Advance();
 
-                while (char.IsDigit(Peek()) || Peek() == '_') Advance();
+                while (char.IsDigit(this.Peek()) || this.Peek() == '_') this.Advance();
             }
 
-            AddToken(TokenType.Interger, double.Parse(Source.Between(start, current).Replace("_", "")));
+            this.AddToken(TokenType.Interger, double.Parse(this.Source.Between(this.start, this.current).Replace("_", "")));
         }
         private void HandleIdentifier()
         {
-            while (ValidIdentifierChar(Peek())) Advance();
+            while (this.ValidIdentifierChar(this.Peek())) this.Advance();
 
-            string text = Source.Between(start, current);
+            string text = this.Source.Between(this.start, this.current);
             TokenType type = keywords.ContainsKey(text) ? keywords[text] : TokenType.Identifier;
-            AddToken(type);
+            this.AddToken(type);
         }
         private bool ValidIdentifierChar(char c)
             => char.IsLetterOrDigit(c) || c == '_' || c == '~';

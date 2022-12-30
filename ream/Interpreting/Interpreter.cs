@@ -39,73 +39,72 @@ namespace Ream.Interpreting
 
         public Interpreter()
         {
-            Globals = new();
-            scope = new(Globals);
-            resolver = new(this);
+            this.Globals = new();
+            this.scope = new(this.Globals);
+            this.resolver = new(this);
 
-            DefineObject("String", new ObjectType(StringPropMap.TypeID));
-            DefineObject("Number", new ObjectType(DoublePropMap.TypeID));
-            DefineObject("Boolean", new ObjectType(BoolPropMap.TypeID));
-            DefineObject("Sequence", new ObjectType(ListPropMap.TypeID));
-            DefineObject("Dictionary", new ObjectType(DictPropMap.TypeID));
+            this.DefineObject("String", new ObjectType(StringPropMap.TypeID));
+            this.DefineObject("Number", new ObjectType(DoublePropMap.TypeID));
+            this.DefineObject("Boolean", new ObjectType(BoolPropMap.TypeID));
+            this.DefineObject("Sequence", new ObjectType(ListPropMap.TypeID));
+            this.DefineObject("Dictionary", new ObjectType(DictPropMap.TypeID));
             //DefineObject("Callable", new ObjectType("callable"));
 
 
-            DefineClass<Flags>();
+            this.DefineClass<Flags>();
         }
 
         public void DefineObject(string key, object value)
         {
-            Globals.Define(key, value, VariableType.Global);
+            this.Globals.Define(key, value, VariableType.Global);
         }
 
         public void DefineFunction(string key, Func<object, List<object>, object> function, int argumentCount)
         {
-            Globals.Define(key, new ExternalFunction(function, argumentCount), VariableType.Global);
+            this.Globals.Define(key, new ExternalFunction(function, argumentCount), VariableType.Global);
         }
 
         public void DefineFunction(string key, MethodInfo method)
         {
-            Globals.Define(key, new ExternalFunction(method), VariableType.Global);
+            this.Globals.Define(key, new ExternalFunction(method), VariableType.Global);
         }
 
         public void DefineFunction(MethodInfo method)
         {
-            DefineFunction(method.Name, method);
+            this.DefineFunction(method.Name, method);
         }
 
         public void DefineClass(string key, object instance)
         {
-            Globals.Define(key, instance, VariableType.Global);
+            this.Globals.Define(key, instance, VariableType.Global);
         }
 
         public void DefineClass(string key, Type type)
         {
-            Globals.Define(key, new ExternalClass(type, this), VariableType.Global);
+            this.Globals.Define(key, new ExternalClass(type, this), VariableType.Global);
         }
 
         public void DefineClass(Type type)
         {
-            DefineClass(type.Name, type);
+            this.DefineClass(type.Name, type);
         }
 
         public void DefineClass<T>(string name)
         {
-            DefineClass(name, typeof(T));
+            this.DefineClass(name, typeof(T));
         }
 
         public void DefineClass<T>()
         {
             Type type = typeof(T);
-            DefineClass(type.Name, type);
+            this.DefineClass(type.Name, type);
         }
 
         public void Interpret(List<Stmt> statements)
         {
             try
             {
-                foreach (Stmt statement in statements)
-                    Execute(statement);
+                foreach (Stmt statement in statements) this.Execute(statement);
             }
             catch (RuntimeError error)
             {
@@ -113,8 +112,8 @@ namespace Ream.Interpreting
             }
             catch (FlowControlError error)
             {
-                if (raiseErrors)
-                    Program.RuntimeError(new RuntimeError(error.SourceToken, "Unexpected flow control jump."));
+                if (this.raiseErrors)
+                    Program.RuntimeError(new(error.SourceToken, "Unexpected flow control jump."));
             }
         }
 
@@ -122,7 +121,7 @@ namespace Ream.Interpreting
         {
             try
             {
-                object value = Evaluate(expression);
+                object value = this.Evaluate(expression);
                 return value;
             }
             catch (RuntimeError error)
@@ -132,8 +131,8 @@ namespace Ream.Interpreting
             }
             catch (FlowControlError error)
             {
-                if (raiseErrors)
-                    Program.RuntimeError(new RuntimeError(error.SourceToken, "Unexpected flow control jump."));
+                if (this.raiseErrors)
+                    Program.RuntimeError(new(error.SourceToken, "Unexpected flow control jump."));
 
                 return null;
             }
@@ -170,7 +169,7 @@ namespace Ream.Interpreting
 
                 foreach (Stmt statement in statements)
                 {
-                    Execute(statement);
+                    this.Execute(statement);
                 }
 
                 this.scope.FreeMemory();
@@ -188,15 +187,15 @@ namespace Ream.Interpreting
 
         public object DeclareStmt(Token name, Expr initializer, VariableType type = VariableType.Normal)
         {
-            VariableType autoType = scope.AutoDetectType(name, type);
+            VariableType autoType = this.scope.AutoDetectType(name, type);
 
             object value;
             if (initializer != null && !autoType.HasFlag(VariableType.Dynamic))
-                value = Evaluate(initializer);
+                value = this.Evaluate(initializer);
             else
                 value = initializer;
 
-            scope.Set(name, value, type);
+            this.scope.Set(name, value, type);
             return value;
         }
 
@@ -205,23 +204,23 @@ namespace Ream.Interpreting
             foreach (Type type in asm.GetTypes()
                          .Where(x => x.IsPublic))
             {
-                DefineClass(type);
+                this.DefineClass(type);
                 //Globals.Define(type.Name, new ExternalClass(type, this), VariableType.Global);
             }
         }
 
         public object VisitAssignExpr(Expr.Assign expr)
         {
-            return DeclareStmt(expr.name, expr.value, VariableType.Normal);
+            return this.DeclareStmt(expr.name, expr.value, VariableType.Normal);
         }
 
         public object VisitBinaryExpr(Expr.Binary expr)
         {
             if (expr.@operator.Type is TokenType.Plus_Equal or TokenType.Minus_Equal or TokenType.Slash_Equal or TokenType.Star_Equal)
             {
-                object left = Evaluate(expr.left);
-                object right = Evaluate(expr.right);
-                object result = resolver.Compare(left, right, expr.@operator.Type switch
+                object left = this.Evaluate(expr.left);
+                object right = this.Evaluate(expr.right);
+                object result = this.resolver.Compare(left, right, expr.@operator.Type switch
                 {
                     TokenType.Plus_Equal => TokenType.Plus,
                     TokenType.Minus_Equal => TokenType.Minus,
@@ -231,43 +230,43 @@ namespace Ream.Interpreting
 
                 if (expr.left is Expr.Variable variable)
                 {
-                    VariableType type = scope.AutoDetectType(variable.name, VariableType.Normal);
+                    VariableType type = this.scope.AutoDetectType(variable.name, VariableType.Normal);
                     if (type.HasFlag(VariableType.Dynamic))
                     {
-                        if (!raiseErrors)
+                        if (!this.raiseErrors)
                             return null;
                         throw new RuntimeError(variable.name, "Cannot assign to a dynamic variable.");
                     }
                     if (type.HasFlag(VariableType.Final))
                     {
-                        if (!raiseErrors)
+                        if (!this.raiseErrors)
                             return null;
                         throw new RuntimeError(variable.name, "Cannot assign to a final variable.");
                     }
 
-                    scope.Set(variable.name, result, type);
+                    this.scope.Set(variable.name, result, type);
                 }
                 else if (expr.left is Expr.Get get)
                 {
-                    object obj = Evaluate(get.obj);
-                    IPropable prop = resolver.GetPropable(obj);
+                    object obj = this.Evaluate(get.obj);
+                    IPropable prop = this.resolver.GetPropable(obj);
                     if (prop == null)
                     {
-                        if (!raiseErrors)
+                        if (!this.raiseErrors)
                             return null;
-                        throw new RuntimeError(get.name, $"Cannot map properties of {(obj == null ? "null" : resolver.Stringify(obj))}");
+                        throw new RuntimeError(get.name, $"Cannot map properties of {(obj == null ? "null" : this.resolver.Stringify(obj))}");
                     }
 
                     VariableType type = prop.AutoDetectType(get.name);
                     if (type.HasFlag(VariableType.Dynamic))
                     {
-                        if (!raiseErrors)
+                        if (!this.raiseErrors)
                             return null;
                         throw new RuntimeError(get.name, "Cannot assign to a dynamic variable.");
                     }
                     if (type.HasFlag(VariableType.Final))
                     {
-                        if (!raiseErrors)
+                        if (!this.raiseErrors)
                             return null;
                         throw new RuntimeError(get.name, "Cannot assign to a final variable.");
                     }
@@ -276,25 +275,25 @@ namespace Ream.Interpreting
                 }
                 else if (expr.left is Expr.Indexer indexer)
                 {
-                    object index = Evaluate(indexer.index);
+                    object index = this.Evaluate(indexer.index);
                     if (index == null)
                     {
-                        if (!raiseErrors)
+                        if (!this.raiseErrors)
                             return null;
                         throw new RuntimeError(indexer.paren, "Cannot mix null");
                     }
 
-                    return resolver.GetMix(Evaluate(indexer.callee), index, result);
+                    return this.resolver.GetMix(this.Evaluate(indexer.callee), index, result);
                 }
                 return result;
             }
             else
-                return resolver.Compare(Evaluate(expr.left), Evaluate(expr.right), expr.@operator.Type);
+                return this.resolver.Compare(this.Evaluate(expr.left), this.Evaluate(expr.right), expr.@operator.Type);
         }
 
         public object VisitBlockStmt(Stmt.Block stmt)
         {
-            ExecuteBlock(stmt.statements, new Scope(scope));
+            this.ExecuteBlock(stmt.statements, new(this.scope));
             return null;
         }
 
@@ -305,17 +304,17 @@ namespace Ream.Interpreting
 
         public object VisitCallExpr(Expr.Call expr)
         {
-            object callee = Evaluate(expr.callee);
+            object callee = this.Evaluate(expr.callee);
 
             if (callee is not ICallable function)
             {
-                if (raiseErrors)
-                    throw new RuntimeError(expr.paren, $"Cannot call {(callee == null ? "null" : resolver.Stringify(callee))}");
+                if (this.raiseErrors)
+                    throw new RuntimeError(expr.paren, $"Cannot call {(callee == null ? "null" : this.resolver.Stringify(callee))}");
                 else
                     return null;
             }
 
-            List<object> args = expr.arguments.Select(x => Evaluate(x)).ToList();
+            List<object> args = expr.arguments.Select(x => this.Evaluate(x)).ToList();
 
             int count = function.ArgumentCount();
             if (count > 0)
@@ -327,8 +326,8 @@ namespace Ream.Interpreting
 
         public object VisitClassStmt(Stmt.Class stmt)
         {
-            Scope localScope = new(Globals);
-            Scope staticScope = new(Globals);
+            Scope localScope = new(this.Globals);
+            Scope staticScope = new(this.Globals);
             foreach (Stmt.Function funStmt in stmt.functions)
             {
                 Function function;
@@ -348,7 +347,7 @@ namespace Ream.Interpreting
             {
                 object value = typeStmt.type.HasFlag(VariableType.Dynamic)
                     ? typeStmt.initializer
-                    : Evaluate(typeStmt.initializer);
+                    : this.Evaluate(typeStmt.initializer);
 
                 if (typeStmt.type.HasFlag(VariableType.Static))
                     staticScope.Set(typeStmt.name, value, typeStmt.type);
@@ -357,7 +356,7 @@ namespace Ream.Interpreting
             }
 
             Class clss = new(stmt.name.Raw, this, localScope, staticScope);
-            scope.Set(stmt.name, clss, VariableType.Global);
+            this.scope.Set(stmt.name, clss, VariableType.Global);
 
             return null;
         }
@@ -369,14 +368,14 @@ namespace Ream.Interpreting
 
         public object VisitEvaluateStmt(Stmt.Evaluate stmt)
         {
-            object obj = Evaluate(stmt.value);
-            Program.Run(resolver.Stringify(obj));
+            object obj = this.Evaluate(stmt.value);
+            Program.Run(this.resolver.Stringify(obj));
             return null;
         }
 
         public object VisitExpressionStmt(Stmt.Expression stmt)
         {
-            Evaluate(stmt.expression);
+            this.Evaluate(stmt.expression);
             return null;
         }
 
@@ -384,16 +383,16 @@ namespace Ream.Interpreting
         {
             if (stmt.name != null)
             {
-                Scope previous = scope;
+                Scope previous = this.scope;
                 try
                 {
-                    scope = new Scope(scope);
-                    foreach (object item in resolver.GetIterator(Evaluate(stmt.iterator)))
+                    this.scope = new(this.scope);
+                    foreach (object item in this.resolver.GetIterator(this.Evaluate(stmt.iterator)))
                     {
-                        scope.Set(stmt.name, item);
+                        this.scope.Set(stmt.name, item);
                         try
                         {
-                            Execute(stmt.body);
+                            this.Execute(stmt.body);
                         }
                         catch (Break)
                         {
@@ -405,19 +404,19 @@ namespace Ream.Interpreting
                         }
                     }
 
-                    scope.FreeMemory();
+                    this.scope.FreeMemory();
                 }
                 finally
                 {
-                    scope = previous;
+                    this.scope = previous;
                 }
             }
             else
-                foreach (object _ in resolver.GetIterator(Evaluate(stmt.iterator)))
+                foreach (object _ in this.resolver.GetIterator(this.Evaluate(stmt.iterator)))
                 {
                     try
                     {
-                        Execute(stmt.body);
+                        this.Execute(stmt.body);
                     }
                     catch (Break)
                     {
@@ -434,24 +433,24 @@ namespace Ream.Interpreting
 
         public object VisitFunctionStmt(Stmt.Function stmt)
         {
-            Function function = new(stmt, scope);
-            scope.Set(stmt.name, function, stmt.type);
+            Function function = new(stmt, this.scope);
+            this.scope.Set(stmt.name, function, stmt.type);
             return null;
         }
 
         public object VisitMethodStmt(Stmt.Method stmt)
         {
-            object obj = Evaluate(stmt.obj);
-            IPropable prop = resolver.GetPropable(obj);
+            object obj = this.Evaluate(stmt.obj);
+            IPropable prop = this.resolver.GetPropable(obj);
             if (prop == null)
             {
-                if (raiseErrors)
-                    throw new RuntimeError(stmt.name, $"Cannot map properties of {(obj == null ? "null" : resolver.Stringify(obj))}");
+                if (this.raiseErrors)
+                    throw new RuntimeError(stmt.name, $"Cannot map properties of {(obj == null ? "null" : this.resolver.Stringify(obj))}");
                 else
                     return null;
             }
 
-            Function func = new(stmt, scope);
+            Function func = new(stmt, this.scope);
 
             prop.Set(stmt.name, func, stmt.type);
             return null;
@@ -459,30 +458,30 @@ namespace Ream.Interpreting
 
         public object VisitGetExpr(Expr.Get expr)
         {
-            object obj = Evaluate(expr.obj);
-            IPropable prop = resolver.GetPropable(obj);
+            object obj = this.Evaluate(expr.obj);
+            IPropable prop = this.resolver.GetPropable(obj);
             if (prop == null)
             {
-                if (raiseErrors)
-                    throw new RuntimeError(expr.name, $"Cannot map properties of {(obj == null ? "null" : resolver.Stringify(obj))}");
+                if (this.raiseErrors)
+                    throw new RuntimeError(expr.name, $"Cannot map properties of {(obj == null ? "null" : this.resolver.Stringify(obj))}");
                 else
                     return null;
             }
             object res = prop.Get(expr.name);
             bool isDynamic = prop.AutoDetectType(expr.name).HasFlag(VariableType.Dynamic);
-            return isDynamic ? Evaluate(res as Expr) : res;
+            return isDynamic ? this.Evaluate(res as Expr) : res;
         }
 
         public object VisitGroupingExpr(Expr.Grouping expr)
         {
-            return Evaluate(expr.expression);
+            return this.Evaluate(expr.expression);
         }
 
         public object VisitIfStmt(Stmt.If stmt)
         {
-            if (resolver.Truthy(Evaluate(stmt.condition)))
+            if (this.resolver.Truthy(this.Evaluate(stmt.condition)))
             {
-                Execute(stmt.thenBranch);
+                this.Execute(stmt.thenBranch);
                 return null;
             }
             
@@ -490,9 +489,9 @@ namespace Ream.Interpreting
             {
                 foreach ((Expr condition, Stmt body) in stmt.elifBranches)
                 {
-                    if (resolver.Truthy(Evaluate(condition)))
+                    if (this.resolver.Truthy(this.Evaluate(condition)))
                     {
-                        Execute(body);
+                        this.Execute(body);
                         return null;
                     }
                 }
@@ -500,7 +499,7 @@ namespace Ream.Interpreting
             
             if (stmt.elseBranch != null)
             {
-                Execute(stmt.elseBranch);
+                this.Execute(stmt.elseBranch);
                 return null;
             }
 
@@ -529,12 +528,12 @@ namespace Ream.Interpreting
             if (File.Exists(dllPath))
             {
                 Assembly asm = Assembly.LoadFrom(dllPath);
-                LoadAssemblyLibrary(asm);
+                this.LoadAssemblyLibrary(asm);
             }
             else if (File.Exists(dllLibDataPath))
             {
                 Assembly asm = Assembly.LoadFrom(dllLibDataPath);
-                LoadAssemblyLibrary(asm);
+                this.LoadAssemblyLibrary(asm);
             }
             else
             {
@@ -550,7 +549,7 @@ namespace Ream.Interpreting
                 }
                 else
                 {
-                    if (raiseErrors)
+                    if (this.raiseErrors)
                         throw new RuntimeError(stmt.name.First(), $"Unable to find library '{displayPath}'");
                 }
             }
@@ -560,14 +559,14 @@ namespace Ream.Interpreting
 
         public object VisitIndexerExpr(Expr.Indexer expr)
         {
-            object index = Evaluate(expr.index);
+            object index = this.Evaluate(expr.index);
             if (index == null)
             {
-                if (!raiseErrors)
+                if (!this.raiseErrors)
                     return null;
                 throw new RuntimeError(expr.paren, "Cannot index null");
             }
-            return resolver.GetIndex(Evaluate(expr.callee), index);
+            return this.resolver.GetIndex(this.Evaluate(expr.callee), index);
         }
 
         public object VisitDictionaryExpr(Expr.Dictionary expr)
@@ -575,15 +574,15 @@ namespace Ream.Interpreting
             Dictionary<object, object> items = new();
             foreach (KeyValuePair<Expr, Expr> item in expr.items)
             {
-                object key = Evaluate(item.Key);
+                object key = this.Evaluate(item.Key);
                 if (key == null)
                 {
-                    if (raiseErrors)
+                    if (this.raiseErrors)
                         throw new RuntimeError(expr.paren, "Dictionary key cannot be null");
                     else
                         continue;
                 }
-                items[key] = Evaluate(item.Value);
+                items[key] = this.Evaluate(item.Value);
             }
 
             return items;
@@ -591,7 +590,7 @@ namespace Ream.Interpreting
 
         public object VisitLambdaExpr(Expr.Lambda expr)
         {
-            Function function = new(expr, scope);
+            Function function = new(expr, this.scope);
             return function;
         }
 
@@ -602,34 +601,34 @@ namespace Ream.Interpreting
 
         public object VisitLogicalExpr(Expr.Logical expr)
         {
-            object left = Evaluate(expr.left);
+            object left = this.Evaluate(expr.left);
 
             if (expr.@operator.Type == TokenType.Pipe_Pipe)
             {
-                if (resolver.Truthy(left))
+                if (this.resolver.Truthy(left))
                     return left;
             }
             else
             {
-                if (!resolver.Truthy(left))
+                if (!this.resolver.Truthy(left))
                     return left;
             }
 
-            return Evaluate(expr.right);
+            return this.Evaluate(expr.right);
         }
 
-        public object VisitMixerExpr(Expr.Mixer expr)
+        public object VisitSetIndexerExpr(Expr.SetIndexer expr)
         {
-            object index = Evaluate(expr.indexer.index);
-            object value = Evaluate(expr.value);
+            object index = this.Evaluate(expr.indexer.index);
+            object value = this.Evaluate(expr.value);
             if (index == null)
             {
-                if (!raiseErrors)
+                if (!this.raiseErrors)
                     return null;
                 throw new RuntimeError(expr.indexer.paren, "Cannot mix null");
             }
 
-            return resolver.GetMix(Evaluate(expr.indexer.callee), index, value);
+            return this.resolver.GetMix(this.Evaluate(expr.indexer.callee), index, value);
         }
 
         public object VisitTernaryExpr(Expr.Ternary expr)
@@ -637,7 +636,7 @@ namespace Ream.Interpreting
             if (expr.leftOperator.Type == TokenType.Question &&
                 expr.rightOperator.Type == TokenType.Colon)
             {
-                return Evaluate(resolver.Truthy(Evaluate(expr.left)) ? expr.middle : expr.right);
+                return this.Evaluate(this.resolver.Truthy(this.Evaluate(expr.left)) ? expr.middle : expr.right);
             }
             else
             {
@@ -646,37 +645,28 @@ namespace Ream.Interpreting
             }
         }
 
-        public object VisitTranslateExpr(Expr.Translate expr)
-        {
-            return expr.@operator.Type switch
-            {
-                TokenType.Ampersand => scope.GetPointer(expr.name),
-                _ => null
-            };
-        }
-
         public object VisitReturnStmt(Stmt.Return stmt)
         {
             object value = null;
-            if (stmt.value != null) value = Evaluate(stmt.value);
+            if (stmt.value != null) value = this.Evaluate(stmt.value);
 
             throw new Return(stmt.keyword, value);
         }
 
         public object VisitSequenceExpr(Expr.Sequence expr)
         {
-            List<object> items = expr.items.Select(x => Evaluate(x)).ToList();
+            List<object> items = expr.items.Select(x => this.Evaluate(x)).ToList();
             return items;
         }
 
         public object VisitSetExpr(Expr.Set expr)
         {
-            object obj = Evaluate(expr.obj);
-            IPropable prop = resolver.GetPropable(obj);
+            object obj = this.Evaluate(expr.obj);
+            IPropable prop = this.resolver.GetPropable(obj);
             if (prop == null)
             {
-                if (raiseErrors)
-                    throw new RuntimeError(expr.name, $"Cannot map properties of {(obj == null ? "null" : resolver.Stringify(obj))}");
+                if (this.raiseErrors)
+                    throw new RuntimeError(expr.name, $"Cannot map properties of {(obj == null ? "null" : this.resolver.Stringify(obj))}");
                 else
                     return null;
             }
@@ -684,7 +674,7 @@ namespace Ream.Interpreting
             VariableType type = prop.AutoDetectType(expr.name);
             object value = type.HasFlag(VariableType.Dynamic)
                 ? expr.value
-                : Evaluate(expr.value);
+                : this.Evaluate(expr.value);
 
             prop.Set(expr.name, value, type);
             return value;
@@ -692,48 +682,47 @@ namespace Ream.Interpreting
 
         public object VisitThisExpr(Expr.This expr)
         {
-            return scope.Get(expr.keyword);
+            return this.scope.Get(expr.keyword);
         }
 
         public object VisitTypedStmt(Stmt.Typed stmt)
         {
-            return DeclareStmt(stmt.name, stmt.initializer, stmt.type);
+            return this.DeclareStmt(stmt.name, stmt.initializer, stmt.type);
         }
 
         public object VisitUnaryExpr(Expr.Unary expr)
         {
-            object right = Evaluate(expr.right);
+            object right = this.Evaluate(expr.right);
 
             return expr.@operator.Type switch
             {
-                TokenType.Not => !resolver.Truthy(right),
+                TokenType.Not => !this.resolver.Truthy(right),
                 TokenType.Minus => right is double d ? -(double)d : null,
-                TokenType.Pipe => right is Pointer p ? p.Get() : null,
                 _ => null,
             };
         }
 
         public object VisitVariableExpr(Expr.Variable expr)
         {
-            object obj = scope.Get(expr.name);
+            object obj = this.scope.Get(expr.name);
             if (obj == null)
                 return null;
 
-            VariableData data = scope.GetData(expr.name);
+            VariableData data = this.scope.GetData(expr.name);
 
             if (data.Type.HasFlag(VariableType.Dynamic))
-                return Evaluate((Expr)obj);
+                return this.Evaluate((Expr)obj);
             else
                 return obj;
         }
 
         public object VisitWhileStmt(Stmt.While stmt)
         {
-            while (resolver.Truthy(Evaluate(stmt.condition)))
+            while (this.resolver.Truthy(this.Evaluate(stmt.condition)))
             {
                 try
                 {
-                    Execute(stmt.body);
+                    this.Execute(stmt.body);
                 }
                 catch (Break)
                 {
@@ -752,29 +741,29 @@ namespace Ream.Interpreting
         {
             Expr.Get getExpr = (Expr.Get)expr.call.callee;
 
-            object obj = Evaluate(getExpr.obj);
-            IPropable prop = resolver.GetPropable(obj);
+            object obj = this.Evaluate(getExpr.obj);
+            IPropable prop = this.resolver.GetPropable(obj);
             if (prop == null)
             {
-                if (raiseErrors)
-                    throw new RuntimeError(getExpr.name, $"Cannot map properties of {(obj == null ? "null" : resolver.Stringify(obj))}");
+                if (this.raiseErrors)
+                    throw new RuntimeError(getExpr.name, $"Cannot map properties of {(obj == null ? "null" : this.resolver.Stringify(obj))}");
                 else
                     return null;
             }
             object res = prop.Get(getExpr.name);
             bool isDynamic = prop.AutoDetectType(getExpr.name).HasFlag(VariableType.Dynamic);
 
-            object callee = isDynamic ? Evaluate(res as Expr) : res;
+            object callee = isDynamic ? this.Evaluate(res as Expr) : res;
 
             if (callee is not ICallable function)
             {
-                if (raiseErrors)
-                    throw new RuntimeError(expr.call.paren, $"Cannot call {(callee == null ? "null" : resolver.Stringify(callee))}");
+                if (this.raiseErrors)
+                    throw new RuntimeError(expr.call.paren, $"Cannot call {(callee == null ? "null" : this.resolver.Stringify(callee))}");
                 else
                     return callee;
             }
 
-            List<object> args = expr.call.arguments.Select(x => Evaluate(x)).ToList();
+            List<object> args = expr.call.arguments.Select(x => this.Evaluate(x)).ToList();
 
             int count = function.ArgumentCount();
             if (count > 0)

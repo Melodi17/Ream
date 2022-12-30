@@ -13,7 +13,8 @@ namespace Ream.Parsing
          public T VisitTernaryExpr(Ternary expr);
          public T VisitCallExpr(Call expr);
          public T VisitIndexerExpr(Indexer expr);
-         public T VisitMixerExpr(Mixer expr);
+         public T VisitSetIndexerExpr(SetIndexer expr);
+         public T VisitSetExpr(Set expr);
          public T VisitGetExpr(Get expr);
          public T VisitChainExpr(Chain expr);
          public T VisitGroupingExpr(Grouping expr);
@@ -22,10 +23,8 @@ namespace Ream.Parsing
          public T VisitLambdaExpr(Lambda expr);
          public T VisitLiteralExpr(Literal expr);
          public T VisitLogicalExpr(Logical expr);
-         public T VisitSetExpr(Set expr);
          public T VisitThisExpr(This expr);
          public T VisitUnaryExpr(Unary expr);
-         public T VisitTranslateExpr(Translate expr);
          public T VisitVariableExpr(Variable expr);
      }
      [Serializable] public class Assign : Expr
@@ -125,12 +124,12 @@ namespace Ream.Parsing
           }
       }
 
-     [Serializable] public class Mixer : Expr
+     [Serializable] public class SetIndexer : Expr
       {
      public readonly Expr.Indexer indexer;
      public readonly Expr value;
 
-         public Mixer(Expr.Indexer indexer, Expr value)
+         public SetIndexer(Expr.Indexer indexer, Expr value)
           {
              this.indexer = indexer;
              this.value = value;
@@ -138,7 +137,26 @@ namespace Ream.Parsing
 
           public override T Accept<T>(Visitor<T> visitor)
           {
-             return visitor.VisitMixerExpr(this);
+             return visitor.VisitSetIndexerExpr(this);
+          }
+      }
+
+     [Serializable] public class Set : Expr
+      {
+     public readonly Expr obj;
+     public readonly Token name;
+     public readonly Expr value;
+
+         public Set(Expr obj, Token name, Expr value)
+          {
+             this.obj = obj;
+             this.name = name;
+             this.value = value;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitSetExpr(this);
           }
       }
 
@@ -272,25 +290,6 @@ namespace Ream.Parsing
           }
       }
 
-     [Serializable] public class Set : Expr
-      {
-     public readonly Expr obj;
-     public readonly Token name;
-     public readonly Expr value;
-
-         public Set(Expr obj, Token name, Expr value)
-          {
-             this.obj = obj;
-             this.name = name;
-             this.value = value;
-          }
-
-          public override T Accept<T>(Visitor<T> visitor)
-          {
-             return visitor.VisitSetExpr(this);
-          }
-      }
-
      [Serializable] public class This : Expr
       {
      public readonly Token keyword;
@@ -320,23 +319,6 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitUnaryExpr(this);
-          }
-      }
-
-     [Serializable] public class Translate : Expr
-      {
-     public readonly Token @operator;
-     public readonly Token name;
-
-         public Translate(Token @operator, Token name)
-          {
-             this.@operator = @operator;
-             this.name = name;
-          }
-
-          public override T Accept<T>(Visitor<T> visitor)
-          {
-             return visitor.VisitTranslateExpr(this);
           }
       }
 

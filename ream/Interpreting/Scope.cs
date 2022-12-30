@@ -21,31 +21,31 @@ namespace Ream.Interpreting
         public void Dispose()
         {
             Memory.Remove(this.key);
-            hooks = null;
+            this.hooks = null;
         }
         public void Hook(ICallable callable)
         {
-            if (hooks.Count >= 16)
+            if (this.hooks.Count >= 16)
             {
                 if (Program.Interpreter.raiseErrors)
                     throw new RuntimeError("Maximum number of hooks reached for this pointer");
                 return;
             }
-            hooks.Add(callable);
+            this.hooks.Add(callable);
         }
         public object Get()
         {
-            if (hooks != null)
-                foreach (ICallable func in hooks)
-                    func.Call(Program.Interpreter, new List<object>() { 0 });
+            if (this.hooks != null)
+                foreach (ICallable func in this.hooks)
+                    func.Call(Program.Interpreter, new() { 0 });
             
             return Memory.ContainsKey(this.key) ? Memory[this.key] : null;
         }
         public void Set(object obj)
         {
-            if (hooks != null)
-                foreach (ICallable func in hooks)
-                    func.Call(Program.Interpreter, new List<object>() { 1, obj });
+            if (this.hooks != null)
+                foreach (ICallable func in this.hooks)
+                    func.Call(Program.Interpreter, new() { 1, obj });
             
             Memory[this.key] = obj;
         }
@@ -59,8 +59,8 @@ namespace Ream.Interpreting
 
     public class Scope
     {
-        public bool HasParent => Parent != null;
-        public Scope Global => HasParent ? Parent.Global : this;
+        public bool HasParent => this.Parent != null;
+        public Scope Global => this.HasParent ? this.Parent.Global : this;
         public readonly Scope Parent;
         private readonly Dictionary<string, Pointer> Values = new();
         private readonly Dictionary<string, VariableData> VariableData = new();
@@ -77,84 +77,92 @@ namespace Ream.Interpreting
         public void Define(string key, object value, VariableType type = VariableType.Normal)
         {
             // Shouldn't already exist
-            Values[key] = new(value);
-            VariableData[key] = new(type, this);
+            this.Values[key] = new(value);
+            this.VariableData[key] = new(type, this);
         }
         public VariableType AutoDetectType(Token key, VariableType manualType)
         {
             VariableType type = manualType.HasFlag(VariableType.Normal)
-                ? GetData(key)?.Type ?? manualType : manualType;
+                ? this.GetData(key)?.Type ?? manualType : manualType;
 
             return type;
         }
         public void FreeMemory()
         {
-            foreach (Pointer pointer in Values.Values)
+            foreach (Pointer pointer in this.Values.Values)
                 pointer.Dispose();
         }
         public void Set(Token key, object value, VariableType manualType = VariableType.Normal)
         {
             string keyName = key.Raw;
 
-            VariableType type = AutoDetectType(key, manualType);
+            VariableType type = this.AutoDetectType(key, manualType);
 
             // Variable is not null and is readonly, so it cannot be changed
-            if (Get(key) != null && GetData(key).Type.HasFlag(VariableType.Final))
+            if (this.Get(key) != null && this.GetData(key).Type.HasFlag(VariableType.Final))
                 return;
 
             if (type.HasFlag(VariableType.Global))
             {
-                if (HasParent)
+                if (this.HasParent)
                 {
-                    Global.Set(key, value, type);
+                    this.Global.Set(key, value, type);
                 }
                 else
                 {
-                    if (Values.ContainsKey(keyName)) Values[keyName].Set(value);
-                    else Values[keyName] = new(value);
-                    VariableData[key.Raw] = new(type, this);
+                    if (this.Values.ContainsKey(keyName))
+                        this.Values[keyName].Set(value);
+                    else
+                        this.Values[keyName] = new(value);
+                    this.VariableData[key.Raw] = new(type, this);
                 }
             }
             else if (type.HasFlag(VariableType.Local))
             {
-                if (Values.ContainsKey(keyName)) Values[keyName].Set(value);
-                else Values[keyName] = new(value);
-                VariableData[key.Raw] = new(type, this);
+                if (this.Values.ContainsKey(keyName))
+                    this.Values[keyName].Set(value);
+                else
+                    this.Values[keyName] = new(value);
+                this.VariableData[key.Raw] = new(type, this);
             }
             else
             {
                 // If it exists locally
-                if (Has(keyName, false))
+                if (this.Has(keyName, false))
                 {
-                    if (Values.ContainsKey(keyName)) Values[keyName].Set(value);
-                    else Values[keyName] = new(value);
-                    VariableData[key.Raw] = new(type, this);
+                    if (this.Values.ContainsKey(keyName))
+                        this.Values[keyName].Set(value);
+                    else
+                        this.Values[keyName] = new(value);
+                    this.VariableData[key.Raw] = new(type, this);
                 }
                 else
                 {
                     // If it exists anywhere
-                    if (Has(keyName, true))
+                    if (this.Has(keyName, true))
                     {
                         // Recall
-                        Parent.Set(key, value, type);
+                        this.Parent.Set(key, value, type);
                     }
                     else
                     {
                         // We need to create it
-                        if (Values.ContainsKey(keyName)) Values[keyName].Set(value);
-                        else Values[keyName] = new(value);
-                        VariableData[key.Raw] = new(type, this);
+                        if (this.Values.ContainsKey(keyName))
+                            this.Values[keyName].Set(value);
+                        else
+                            this.Values[keyName] = new(value);
+                        this.VariableData[key.Raw] = new(type, this);
                     }
                 }
             }
         }
         public bool Has(string key, bool canCheckParent = true)
         {
-            bool has = Values.ContainsKey(key);
+            bool has = this.Values.ContainsKey(key);
 
             // Can't be found locally, has a parent to check and allowed to check parent
-            if (!has && HasParent && canCheckParent)
-                has = Parent.Has(key);
+            if (!has && this.HasParent && canCheckParent)
+                has = this.Parent.Has(key);
             return has;
         }
 
@@ -163,11 +171,11 @@ namespace Ream.Interpreting
             string keyName = key.Raw;
 
             // If can be found locally
-            if (Values.ContainsKey(keyName))
-                return Values[keyName].Get();
+            if (this.Values.ContainsKey(keyName))
+                return this.Values[keyName].Get();
 
             // If can't be found locally and has a parent to check
-            if (HasParent) return Parent.Get(key);
+            if (this.HasParent) return this.Parent.Get(key);
 
             //throw new RuntimeError(key, $"Undefined variable '{keyName}'"); // return null instead
             return null;
@@ -178,11 +186,11 @@ namespace Ream.Interpreting
             string keyName = key.Raw;
 
             // If can be found locally
-            if (Values.ContainsKey(keyName))
-                return Values[keyName];
+            if (this.Values.ContainsKey(keyName))
+                return this.Values[keyName];
 
             // If can't be found locally and has a parent to check
-            if (HasParent) return Parent.GetPointer(key);
+            if (this.HasParent) return this.Parent.GetPointer(key);
 
             //throw new RuntimeError(key, $"Undefined variable '{keyName}'"); // return null instead
             return null;
@@ -193,18 +201,18 @@ namespace Ream.Interpreting
             string keyName = key.Raw;
 
             // If can be found locally
-            if (VariableData.ContainsKey(keyName))
-                return VariableData[keyName];
+            if (this.VariableData.ContainsKey(keyName))
+                return this.VariableData[keyName];
 
             // If can't be found locally and has a parent to check
-            if (HasParent) return Parent.GetData(key);
+            if (this.HasParent) return this.Parent.GetData(key);
 
             //throw new RuntimeError(key, $"Undefined variable '{keyName}'"); // return null instead
             return null;
         }
 
         public Dictionary<string, object> All()
-            => Values.ToDictionary(x => x.Key, x => x.Value.Get());
+            => this.Values.ToDictionary(x => x.Key, x => x.Value.Get());
     }
 
     public class VariableData
@@ -214,8 +222,8 @@ namespace Ream.Interpreting
 
         public VariableData(VariableType type, Scope scope)
         {
-            Type = type;
-            Scope = scope;
+            this.Type = type;
+            this.Scope = scope;
         }
     }
 }

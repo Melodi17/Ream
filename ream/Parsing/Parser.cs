@@ -9,7 +9,7 @@ namespace Ream.Parsing
         private bool allowExpression = false;
         private bool foundExpression = false;
         private class ParseError : Exception { }
-        public bool AtEnd => Peek().Type == TokenType.End;
+        public bool AtEnd => this.Peek().Type == TokenType.End;
         private List<Token> tokens;
         private int Current = 0;
 
@@ -18,7 +18,7 @@ namespace Ream.Parsing
             this.macros = new();
             this.tokens = new();
             Token lastToken = null;
-            foreach (var item in tokens) // Remove empty lines
+            foreach (Token item in tokens) // Remove empty lines
             {
                 if (item.Type == TokenType.Newline
                     && lastToken != null && lastToken.Type == TokenType.Newline)
@@ -30,7 +30,7 @@ namespace Ream.Parsing
         }
         private static IEnumerable<IEnumerable<TValue>> Chunk<TValue>(IEnumerable<TValue> values, Func<TValue, bool> pred)
         {
-            using (var enumerator = values.GetEnumerator())
+            using (IEnumerator<TValue> enumerator = values.GetEnumerator())
             {
                 while (enumerator.MoveNext())
                 {
@@ -48,9 +48,9 @@ namespace Ream.Parsing
         public List<Stmt> Parse()
         {
             List<Stmt> statements = new();
-            while (!AtEnd)
+            while (!this.AtEnd)
             {
-                statements.Add(Declaration());
+                statements.Add(this.Declaration());
             }
 
             return statements;
@@ -58,37 +58,37 @@ namespace Ream.Parsing
 
         public object ParseREPL()
         {
-            allowExpression = true;
+            this.allowExpression = true;
             List<Stmt> statements = new();
-            while (!AtEnd)
+            while (!this.AtEnd)
             {
-                statements.Add(Declaration());
+                statements.Add(this.Declaration());
 
-                if (foundExpression)
+                if (this.foundExpression)
                 {
                     Stmt last = statements.Last();
                     return ((Stmt.Expression)last).expression;
                 }
 
-                allowExpression = false;
+                this.allowExpression = false;
             }
 
             return statements;
         }
         private Expr Expression()
         {
-            return ExprAssignment();
+            return this.ExprAssignment();
         }
         private Expr ExprAssignment()
         {
-            Expr expr = ExprTernary();
+            Expr expr = this.ExprTernary();
 
-            InsistEnd();
+            this.InsistEnd();
 
-            if (Match(TokenType.Equal))
+            if (this.Match(TokenType.Equal))
             {
-                Token eq = Previous();
-                Expr value = ExprAssignment();
+                Token eq = this.Previous();
+                Expr value = this.ExprAssignment();
 
                 if (expr is Expr.Variable variable)
                 {
@@ -100,15 +100,15 @@ namespace Ream.Parsing
                 }
                 else if (expr is Expr.Indexer indexer)
                 {
-                    return new Expr.Mixer(indexer, value);
+                    return new Expr.SetIndexer(indexer, value);
                 }
 
-                Error(eq, $"Invalid assignment target {expr.GetType().Name}");
+                this.Error(eq, $"Invalid assignment target {expr.GetType().Name}");
             }
-            else if (Match(TokenType.Plus_Equal, TokenType.Minus_Equal, TokenType.Slash_Equal, TokenType.Star_Equal))
+            else if (this.Match(TokenType.Plus_Equal, TokenType.Minus_Equal, TokenType.Slash_Equal, TokenType.Star_Equal))
             {
-                Token op = Previous();
-                Expr right = ExprAssignment();
+                Token op = this.Previous();
+                Expr right = this.ExprAssignment();
                 return new Expr.Binary(expr, op, right);
             }
 
@@ -116,16 +116,16 @@ namespace Ream.Parsing
         }
         private Expr ExprTernary()
         {
-            Expr expr = ExprOr();
+            Expr expr = this.ExprOr();
 
-            InsistEnd();
+            this.InsistEnd();
 
-            if (Match(TokenType.Question))
+            if (this.Match(TokenType.Question))
             {
-                Token leftOperator = Previous();
-                Expr middle = Expression();
-                Token rightOperator = Consume(TokenType.Colon, "Expected ':' in ternary operator");
-                Expr right = Expression();
+                Token leftOperator = this.Previous();
+                Expr middle = this.Expression();
+                Token rightOperator = this.Consume(TokenType.Colon, "Expected ':' in ternary operator");
+                Expr right = this.Expression();
                 expr = new Expr.Ternary(expr, leftOperator, middle, rightOperator, right);
             }
 
@@ -133,14 +133,14 @@ namespace Ream.Parsing
         }
         private Expr ExprOr()
         {
-            Expr expr = ExprAnd();
+            Expr expr = this.ExprAnd();
 
-            InsistEnd();
+            this.InsistEnd();
 
-            while (Match(TokenType.Pipe_Pipe))
+            while (this.Match(TokenType.Pipe_Pipe))
             {
-                Token op = Previous();
-                Expr right = ExprAnd();
+                Token op = this.Previous();
+                Expr right = this.ExprAnd();
                 expr = new Expr.Logical(expr, op, right);
             }
 
@@ -148,14 +148,14 @@ namespace Ream.Parsing
         }
         private Expr ExprAnd()
         {
-            Expr expr = ExprEquality();
+            Expr expr = this.ExprEquality();
 
-            InsistEnd();
+            this.InsistEnd();
 
-            while (Match(TokenType.Ampersand_Ampersand))
+            while (this.Match(TokenType.Ampersand_Ampersand))
             {
-                Token op = Previous();
-                Expr right = ExprEquality();
+                Token op = this.Previous();
+                Expr right = this.ExprEquality();
                 expr = new Expr.Logical(expr, op, right);
             }
 
@@ -163,14 +163,14 @@ namespace Ream.Parsing
         }
         private Expr ExprEquality()
         {
-            Expr expr = ExprComparison();
+            Expr expr = this.ExprComparison();
 
-            InsistEnd();
+            this.InsistEnd();
 
-            while (Match(TokenType.Not_Equal, TokenType.Equal_Equal))
+            while (this.Match(TokenType.Not_Equal, TokenType.Equal_Equal))
             {
-                Token op = Previous();
-                Expr right = ExprComparison();
+                Token op = this.Previous();
+                Expr right = this.ExprComparison();
                 expr = new Expr.Binary(expr, op, right);
             }
 
@@ -178,14 +178,14 @@ namespace Ream.Parsing
         }
         private Expr ExprComparison()
         {
-            Expr expr = ExprTerm();
+            Expr expr = this.ExprTerm();
 
-            InsistEnd();
+            this.InsistEnd();
 
-            while (Match(TokenType.Greater, TokenType.Greater_Equal, TokenType.Less, TokenType.Less_Equal))
+            while (this.Match(TokenType.Greater, TokenType.Greater_Equal, TokenType.Less, TokenType.Less_Equal))
             {
-                Token op = Previous();
-                Expr right = ExprTerm();
+                Token op = this.Previous();
+                Expr right = this.ExprTerm();
                 expr = new Expr.Binary(expr, op, right);
             }
 
@@ -193,14 +193,14 @@ namespace Ream.Parsing
         }
         private Expr ExprTerm()
         {
-            Expr expr = ExprFactor();
+            Expr expr = this.ExprFactor();
 
-            InsistEnd();
+            this.InsistEnd();
 
-            while (Match(TokenType.Plus, TokenType.Minus))
+            while (this.Match(TokenType.Plus, TokenType.Minus))
             {
-                Token op = Previous();
-                Expr right = ExprFactor();
+                Token op = this.Previous();
+                Expr right = this.ExprFactor();
                 expr = new Expr.Binary(expr, op, right);
             }
 
@@ -208,14 +208,14 @@ namespace Ream.Parsing
         }
         private Expr ExprFactor()
         {
-            Expr expr = ExprIncrement();
+            Expr expr = this.ExprIncrement();
 
-            InsistEnd();
+            this.InsistEnd();
 
-            while (Match(TokenType.Slash, TokenType.Star, TokenType.Percent))
+            while (this.Match(TokenType.Slash, TokenType.Star, TokenType.Percent))
             {
-                Token op = Previous();
-                Expr right = ExprIncrement();
+                Token op = this.Previous();
+                Expr right = this.ExprIncrement();
                 expr = new Expr.Binary(expr, op, right);
             }
 
@@ -223,16 +223,16 @@ namespace Ream.Parsing
         }
         private Expr ExprIncrement()
         {
-            Expr expr = ExprUnary();
+            Expr expr = this.ExprUnary();
 
-            InsistEnd();
+            this.InsistEnd();
 
-            if (Match(TokenType.Plus_Plus, TokenType.Minus_Minus))
+            if (this.Match(TokenType.Plus_Plus, TokenType.Minus_Minus))
             {
-                Token op = Previous();
+                Token op = this.Previous();
                 //return new Expr.Unary(op, expr);
                 return new Expr.Binary(expr,
-                    new Token(op.Type == TokenType.Plus_Plus ? TokenType.Plus_Equal : TokenType.Minus_Equal, op.Raw, op.Literal, op.Line),
+                    new(op.Type == TokenType.Plus_Plus ? TokenType.Plus_Equal : TokenType.Minus_Equal, op.Raw, op.Literal, op.Line),
                     new Expr.Literal(1D));
             }
 
@@ -241,49 +241,42 @@ namespace Ream.Parsing
         }
         private Expr ExprUnary()
         {
-            InsistEnd();
+            this.InsistEnd();
             
-            if (Match(TokenType.Not, TokenType.Minus, TokenType.Pipe))
+            if (this.Match(TokenType.Not, TokenType.Minus))
             {
-                Token op = Previous();
-                Expr right = ExprUnary();
+                Token op = this.Previous();
+                Expr right = this.ExprUnary();
                 return new Expr.Unary(op, right);
             }
 
-            InsistEnd();
+            this.InsistEnd();
 
-            if (Match(TokenType.Ampersand))
-            {
-                Token op = Previous();
-                Token name = Consume(TokenType.Identifier, "Expected identifier after translator");
-                return new Expr.Translate(op, name);
-            }
-
-            return ExprIndexer();
+            return this.ExprIndexer();
         }
         private Expr ExprCall()
         {
-            Expr expr = ExprPrimary();
+            Expr expr = this.ExprPrimary();
 
-            InsistEnd();
+            this.InsistEnd();
 
             while (true)
             {
-                if (Match(TokenType.Left_Parenthesis))
+                if (this.Match(TokenType.Left_Parenthesis))
                 {
-                    expr = ExprFinishCall(expr);
+                    expr = this.ExprFinishCall(expr);
                 }
-                else if (Match(TokenType.Period))
+                else if (this.Match(TokenType.Period))
                 {
-                    Token name = Consume(TokenType.Identifier, "Expected property name after '.'");
+                    Token name = this.Consume(TokenType.Identifier, "Expected property name after '.'");
                     expr = new Expr.Get(expr, name);
                 }
-                else if (Match(TokenType.Chain))
+                else if (this.Match(TokenType.Chain))
                 {
                     // Chainable method calls, like this, a->b()->c(), where a is the object, b is the method, and c is the method
-                    Token name = Consume(TokenType.Identifier, "Expected method name after '->'");
-                    Consume(TokenType.Left_Parenthesis, "Expected '(' after method name");
-                    Expr.Call call = (Expr.Call)ExprFinishCall(new Expr.Get(expr, name));
+                    Token name = this.Consume(TokenType.Identifier, "Expected method name after '->'");
+                    this.Consume(TokenType.Left_Parenthesis, "Expected '(' after method name");
+                    Expr.Call call = (Expr.Call)this.ExprFinishCall(new Expr.Get(expr, name));
                     expr = new Expr.Chain(call);
                 }
                 else
@@ -296,35 +289,35 @@ namespace Ream.Parsing
         }
         private Expr ExprIndexer()
         {
-            Expr expr = ExprCall();
+            Expr expr = this.ExprCall();
 
 
             while (true)
             {
-                InsistEnd();
+                this.InsistEnd();
 
-                if (Match(TokenType.Left_Square))
+                if (this.Match(TokenType.Left_Square))
                 {
-                    Expr index = Expression();
+                    Expr index = this.Expression();
                     //Expr index = ExprIndexer();
 
-                    Token paren = Consume(TokenType.Right_Square, "Expected ']' after index");
-                    InsistEnd();
+                    Token paren = this.Consume(TokenType.Right_Square, "Expected ']' after index");
+                    this.InsistEnd();
 
                     expr = new Expr.Indexer(expr, paren, index);
 
                 }
-                else if (Match(TokenType.Period))
+                else if (this.Match(TokenType.Period))
                 {
-                    Token name = Consume(TokenType.Identifier, "Expected property name after '.'");
+                    Token name = this.Consume(TokenType.Identifier, "Expected property name after '.'");
                     expr = new Expr.Get(expr, name);
                 }
-                else if (Match(TokenType.Chain))
+                else if (this.Match(TokenType.Chain))
                 {
                     // Chainable method calls, like this, a->b()->c(), where a is the object, b is the method, and c is the method
-                    Token name = Consume(TokenType.Identifier, "Expected method name after '->'");
-                    Consume(TokenType.Left_Parenthesis, "Expected '(' after method name");
-                    Expr.Call call = (Expr.Call)ExprFinishCall(new Expr.Get(expr, name));
+                    Token name = this.Consume(TokenType.Identifier, "Expected method name after '->'");
+                    this.Consume(TokenType.Left_Parenthesis, "Expected '(' after method name");
+                    Expr.Call call = (Expr.Call)this.ExprFinishCall(new Expr.Get(expr, name));
                     expr = new Expr.Chain(call);
                 }
                 else
@@ -338,56 +331,54 @@ namespace Ream.Parsing
         private Expr ExprFinishCall(Expr callee)
         {
             List<Expr> arguments = new();
-            if (!Check(TokenType.Right_Parenthesis))
+            if (!this.Check(TokenType.Right_Parenthesis))
             {
-                InsistEnd();
+                this.InsistEnd();
                 do
                 {
-                    Match(TokenType.Newline);
-                    if (Check(TokenType.Right_Parenthesis))
+                    this.Match(TokenType.Newline);
+                    if (this.Check(TokenType.Right_Parenthesis))
                         break;
-                    if (arguments.Count >= 255)
-                        Error(Peek(), "Maximum of 255 arguments allowed");
+                    if (arguments.Count >= 255) this.Error(this.Peek(), "Maximum of 255 arguments allowed");
 
-                    if (Check(TokenType.Comma))
+                    if (this.Check(TokenType.Comma))
                         arguments.Add(new Expr.Literal(null));
                     else
-                        arguments.Add(Expression());
+                        arguments.Add(this.Expression());
 
-                } while (Match(TokenType.Newline, TokenType.Comma));
+                } while (this.Match(TokenType.Newline, TokenType.Comma));
             }
 
-            Token paren = Consume(TokenType.Right_Parenthesis, "Expected ')' after arguments");
-            InsistEnd();
+            Token paren = this.Consume(TokenType.Right_Parenthesis, "Expected ')' after arguments");
+            this.InsistEnd();
 
             return new Expr.Call(callee, paren, arguments);
         }
         private Expr ExprFinishLambda()
         {
             List<Token> parameters = new();
-            if (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace) || Check(TokenType.Colon)))
+            if (!(this.Check(TokenType.Newline) || this.Check(TokenType.Left_Brace) || this.Check(TokenType.Colon)))
             {
                 do
                 {
-                    if (parameters.Count >= 255)
-                        Error(Peek(), "Maximum of 255 arguments allowed");
+                    if (parameters.Count >= 255) this.Error(this.Peek(), "Maximum of 255 arguments allowed");
 
-                    parameters.Add(Consume(TokenType.Identifier, "Expected parameter name"));
-                } while (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace) || Check(TokenType.Colon)));
+                    parameters.Add(this.Consume(TokenType.Identifier, "Expected parameter name"));
+                } while (!(this.Check(TokenType.Newline) || this.Check(TokenType.Left_Brace) || this.Check(TokenType.Colon)));
             }
 
-            InsistEnd();
+            this.InsistEnd();
 
             List<Stmt> body;
-            if (Match(TokenType.Colon))
+            if (this.Match(TokenType.Colon))
             {
-                Expr expr = Expression();
-                body = new() { new Stmt.Return(Previous(), expr) };
+                Expr expr = this.Expression();
+                body = new() { new Stmt.Return(this.Previous(), expr) };
             }
             else
             {
-                Consume(TokenType.Left_Brace, "Expected '{' after parameters");
-                body = Block();
+                this.Consume(TokenType.Left_Brace, "Expected '{' after parameters");
+                body = this.Block();
             }
 
             return new Expr.Lambda(parameters, body);
@@ -395,105 +386,105 @@ namespace Ream.Parsing
         private Expr ExprFinishSequence()
         {
             List<Expr> items = new();
-            if (!Check(TokenType.Right_Square))
+            if (!this.Check(TokenType.Right_Square))
             {
-                InsistEnd();
+                this.InsistEnd();
                 do
                 {
-                    Match(TokenType.Newline);
-                    if (Check(TokenType.Right_Square))
+                    this.Match(TokenType.Newline);
+                    if (this.Check(TokenType.Right_Square))
                         break;
 
-                    if (Check(TokenType.Comma))
+                    if (this.Check(TokenType.Comma))
                         items.Add(new Expr.Literal(null));
                     else
-                        items.Add(Expression());
-                } while (Match(TokenType.Comma, TokenType.Newline));
+                        items.Add(this.Expression());
+                } while (this.Match(TokenType.Comma, TokenType.Newline));
             }
 
-            Token paren = Consume(TokenType.Right_Square, "Expected ']' after sequence");
+            Token paren = this.Consume(TokenType.Right_Square, "Expected ']' after sequence");
 
             return new Expr.Sequence(items);
         }
         private Expr ExprFinishDictionary()
         {
             Dictionary<Expr, Expr> items = new();
-            if (!Check(TokenType.Right_Brace))
+            if (!this.Check(TokenType.Right_Brace))
             {
-                InsistEnd();
+                this.InsistEnd();
                 do
                 {
-                    Match(TokenType.Newline);
-                    if (Check(TokenType.Right_Brace))
+                    this.Match(TokenType.Newline);
+                    if (this.Check(TokenType.Right_Brace))
                         break;
 
-                    if (Check(TokenType.Comma))
+                    if (this.Check(TokenType.Comma))
                         items.Add(new Expr.Literal(null), new Expr.Literal(null));
-                    else if (Check(TokenType.Colon))
+                    else if (this.Check(TokenType.Colon))
                     {
-                        Advance();
-                        items.Add(new Expr.Literal(null), Expression());
+                        this.Advance();
+                        items.Add(new Expr.Literal(null), this.Expression());
                     }
                     else
                     {
-                        Expr key = Expression();
-                        Consume(TokenType.Colon, "Expected ':' after key");
-                        if (Check(TokenType.Comma) || Check(TokenType.Newline) || Check(TokenType.Right_Brace))
+                        Expr key = this.Expression();
+                        this.Consume(TokenType.Colon, "Expected ':' after key");
+                        if (this.Check(TokenType.Comma) || this.Check(TokenType.Newline) || this.Check(TokenType.Right_Brace))
                         {
                             items.Add(key, new Expr.Literal(null));
                         }
                         else
                         {
-                            Expr value = Expression();
+                            Expr value = this.Expression();
                             items.Add(key, value);
                         }
                     }
-                } while (Match(TokenType.Comma, TokenType.Newline));
+                } while (this.Match(TokenType.Comma, TokenType.Newline));
             }
 
-            Token paren = Consume(TokenType.Right_Brace, "Expected '}' after dictionary");
+            Token paren = this.Consume(TokenType.Right_Brace, "Expected '}' after dictionary");
 
             return new Expr.Dictionary(paren, items);
         }
         private Expr ExprPrimary()
         {
-            if (Match(TokenType.This)) return new Expr.This(Previous());
-            if (Match(TokenType.True)) return new Expr.Literal(true);
-            if (Match(TokenType.False)) return new Expr.Literal(false);
-            if (Match(TokenType.Null)) return new Expr.Literal(null);
-            if (Match(TokenType.Prototype)) return new Expr.Literal(Previous().Literal);
-            if (Match(TokenType.String, TokenType.Interger))
-                return new Expr.Literal(Previous().Literal);
-            if (Match(TokenType.Left_Parenthesis))
+            if (this.Match(TokenType.This)) return new Expr.This(this.Previous());
+            if (this.Match(TokenType.True)) return new Expr.Literal(true);
+            if (this.Match(TokenType.False)) return new Expr.Literal(false);
+            if (this.Match(TokenType.Null)) return new Expr.Literal(null);
+            if (this.Match(TokenType.Prototype)) return new Expr.Literal(this.Previous().Literal);
+            if (this.Match(TokenType.String, TokenType.Interger))
+                return new Expr.Literal(this.Previous().Literal);
+            if (this.Match(TokenType.Left_Parenthesis))
             {
-                Expr expr = Expression();
-                Consume(TokenType.Right_Parenthesis, "Expected ')' after expression");
+                Expr expr = this.Expression();
+                this.Consume(TokenType.Right_Parenthesis, "Expected ')' after expression");
                 return new Expr.Grouping(expr);
             }
-            if (Match(TokenType.Left_Square)) return ExprFinishSequence();
-            if (Match(TokenType.Left_Brace)) return ExprFinishDictionary();
-            if (Match(TokenType.Colon_Colon))
+            if (this.Match(TokenType.Left_Square)) return this.ExprFinishSequence();
+            if (this.Match(TokenType.Left_Brace)) return this.ExprFinishDictionary();
+            if (this.Match(TokenType.Colon_Colon))
             {
                 // Force into expression
-                return ExprPrimary();
+                return this.ExprPrimary();
             }
-            if (Match(TokenType.Identifier))
+            if (this.Match(TokenType.Identifier))
             {
-                return new Expr.Variable(Previous());
+                return new Expr.Variable(this.Previous());
             }
-            if (Match(TokenType.Lambda)) return ExprFinishLambda();
+            if (this.Match(TokenType.Lambda)) return this.ExprFinishLambda();
 
-            if (Match(TokenType.Newline)) return null;
+            if (this.Match(TokenType.Newline)) return null;
 
-            throw Error(Peek(), "Expected expression");
+            throw this.Error(this.Peek(), "Expected expression");
         }
         private bool Match(params TokenType[] types)
         {
             foreach (TokenType type in types)
             {
-                if (Check(type))
+                if (this.Check(type))
                 {
-                    Advance();
+                    this.Advance();
                     return true;
                 }
             }
@@ -502,38 +493,38 @@ namespace Ream.Parsing
         }
         private bool Check(TokenType type)
         {
-            if (AtEnd) return false;
-            return Peek().Type == type;
+            if (this.AtEnd) return false;
+            return this.Peek().Type == type;
         }
         private Token Consume(TokenType type, string message, bool allowPrematureEnd = false)
         {
-            if (Check(type) || (allowPrematureEnd && AtEnd)) return Advance();
+            if (this.Check(type) || (allowPrematureEnd && this.AtEnd)) return this.Advance();
 
-            throw Error(Peek(), message);
+            throw this.Error(this.Peek(), message);
         }
         private Token Advance()
         {
-            if (!AtEnd) Current++;
-            return Previous();
+            if (!this.AtEnd) this.Current++;
+            return this.Previous();
         }
         private Token Peek(int n = 0)
-            => tokens[Current + n];
+            => this.tokens[this.Current + n];
         private Token Previous()
-            => tokens[Current - 1];
+            => this.tokens[this.Current - 1];
         private ParseError Error(Token token, string message)
         {
             Program.Error(token, message);
-            return new ParseError();
+            return new();
         }
         private void Synchronize()
         {
-            Advance();
+            this.Advance();
 
-            while (!AtEnd)
+            while (!this.AtEnd)
             {
-                if (Previous().Type == TokenType.Newline) return;
+                if (this.Previous().Type == TokenType.Newline) return;
 
-                switch (Peek().Type)
+                switch (this.Peek().Type)
                 {
                     case TokenType.If:
                     case TokenType.Else:
@@ -549,104 +540,104 @@ namespace Ream.Parsing
                         return;
                 }
 
-                Advance();
+                this.Advance();
             }
         }
         private Stmt Declaration()
         {
             try
             {
-                if (Peek().Type.IsVariableType())
+                if (this.Peek().Type.IsVariableType())
                 {
-                    VariableType dat = Advance().Type.ToVariableType();
-                    while (Peek().Type.IsVariableType())
+                    VariableType dat = this.Advance().Type.ToVariableType();
+                    while (this.Peek().Type.IsVariableType())
                     {
-                        dat |= Advance().Type.ToVariableType();
+                        dat |= this.Advance().Type.ToVariableType();
                     }
-                    if (Match(TokenType.Function))
-                        return FunctionDeclaration(dat);
-                    else if (Match(TokenType.Method))
-                        return FunctionDeclaration(dat, isMethod: true);
+                    if (this.Match(TokenType.Function))
+                        return this.FunctionDeclaration(dat);
+                    else if (this.Match(TokenType.Method))
+                        return this.FunctionDeclaration(dat, isMethod: true);
                     else
-                        return VariableDeclaration<Stmt.Typed>(dat);
+                        return this.VariableDeclaration<Stmt.Typed>(dat);
                 }
-                if (Match(TokenType.Function)) return FunctionDeclaration(VariableType.Normal);
-                if (Match(TokenType.Method)) return FunctionDeclaration(VariableType.Normal, isMethod: true);
-                if (Match(TokenType.Class)) return ClassDeclaration();
+                if (this.Match(TokenType.Function)) return this.FunctionDeclaration(VariableType.Normal);
+                if (this.Match(TokenType.Method)) return this.FunctionDeclaration(VariableType.Normal, isMethod: true);
+                if (this.Match(TokenType.Class)) return this.ClassDeclaration();
 
-                return Statement();
+                return this.Statement();
             }
             catch (ParseError)
             {
-                Synchronize();
+                this.Synchronize();
                 return null;
             }
         }
         private Stmt Statement()
         {
-            if (Match(TokenType.If)) return IfStatement();
-            if (Match(TokenType.While)) return WhileStatement();
-            if (Match(TokenType.For)) return ForStatement();
-            if (Match(TokenType.Evaluate)) return EvaluateStatement();
-            if (Match(TokenType.Import)) return ImportStatement();
-            if (Match(TokenType.Return)) return ReturnStatement();
-            if (Match(TokenType.Continue)) return ContinueStatement();
-            if (Match(TokenType.Break)) return BreakStatement();
-            if (Match(TokenType.Macro)) return MacroStatement();
-            if (Match(TokenType.Left_Brace)) return new Stmt.Block(Block());
+            if (this.Match(TokenType.If)) return this.IfStatement();
+            if (this.Match(TokenType.While)) return this.WhileStatement();
+            if (this.Match(TokenType.For)) return this.ForStatement();
+            if (this.Match(TokenType.Evaluate)) return this.EvaluateStatement();
+            if (this.Match(TokenType.Import)) return this.ImportStatement();
+            if (this.Match(TokenType.Return)) return this.ReturnStatement();
+            if (this.Match(TokenType.Continue)) return this.ContinueStatement();
+            if (this.Match(TokenType.Break)) return this.BreakStatement();
+            if (this.Match(TokenType.Macro)) return this.MacroStatement();
+            if (this.Match(TokenType.Left_Brace)) return new Stmt.Block(this.Block());
 
-            return ExpressionStatement();
+            return this.ExpressionStatement();
         }
         private Stmt ReturnStatement()
         {
-            Token keyword = Previous();
+            Token keyword = this.Previous();
             Expr value = null;
-            if (!(Check(TokenType.Newline) || Check(TokenType.Right_Brace)))
+            if (!(this.Check(TokenType.Newline) || this.Check(TokenType.Right_Brace)))
             {
-                value = Expression();
+                value = this.Expression();
             }
 
-            InsistEnd();
+            this.InsistEnd();
             return new Stmt.Return(keyword, value);
         }
         private Stmt ContinueStatement()
         {
-            Token keyword = Previous();
-            InsistEnd();
+            Token keyword = this.Previous();
+            this.InsistEnd();
 
             return new Stmt.Continue(keyword);
         }
         private Stmt BreakStatement()
         {
-            Token keyword = Previous();
-            InsistEnd();
+            Token keyword = this.Previous();
+            this.InsistEnd();
 
             return new Stmt.Break(keyword);
         }
         private Stmt MacroStatement()
         {
             //Token keyword = Previous();
-            Token name = Consume(TokenType.Identifier, "Expected identifier after 'macro'");
-            Consume(TokenType.Equal, "Expected '=' before macro body");
+            Token name = this.Consume(TokenType.Identifier, "Expected identifier after 'macro'");
+            this.Consume(TokenType.Equal, "Expected '=' before macro body");
 
             List<Token> body = new();
 
-            while (!Check(TokenType.Newline) && !AtEnd)
-                body.Add(Advance());
+            while (!this.Check(TokenType.Newline) && !this.AtEnd)
+                body.Add(this.Advance());
 
-            InsistEnd();
+            this.InsistEnd();
 
-            macros[name.Raw] = new Macro(body);
+            this.macros[name.Raw] = new(body);
 
             List<Token> newTokens = new();
-            foreach (Token token in tokens.ToList())
+            foreach (Token token in this.tokens.ToList())
             {
                 if (token.Type == TokenType.Identifier && token.Raw == name.Raw)
                     newTokens.AddRange(body);
                 else
                     newTokens.Add(token);
             }
-            tokens = newTokens;
+            this.tokens = newTokens;
 
             return null;
         }
@@ -657,7 +648,7 @@ namespace Ream.Parsing
 
             while (true)
             {
-                Token current = Advance();
+                Token current = this.Advance();
                 if (current.Type == start)
                 {
                     tokens.Add(current);
@@ -680,14 +671,14 @@ namespace Ream.Parsing
         private List<Stmt> Block()
         {
             List<Stmt> statements = new();
-            InsistEnd();
-            while (!(Check(TokenType.Right_Brace)))
+            this.InsistEnd();
+            while (!(this.Check(TokenType.Right_Brace)))
             {
-                statements.Add(Declaration());
+                statements.Add(this.Declaration());
             }
 
-            Consume(TokenType.Right_Brace, "Expected '}' after block");
-            InsistEnd();
+            this.Consume(TokenType.Right_Brace, "Expected '}' after block");
+            this.InsistEnd();
             return statements;
         }
         private Stmt FunctionDeclaration(VariableType type, bool isMethod = false)
@@ -697,22 +688,22 @@ namespace Ream.Parsing
 
             // Work out whether it is just a token or not
             if (!isMethod
-                && Peek().Type == TokenType.Identifier
-                && Peek(1).Type is TokenType.Left_Brace or TokenType.Colon or TokenType.Newline)
+                && this.Peek().Type == TokenType.Identifier
+                && this.Peek(1).Type is TokenType.Left_Brace or TokenType.Colon or TokenType.Newline)
             {
-                name = Consume(TokenType.Identifier, "Expected function name");
+                name = this.Consume(TokenType.Identifier, "Expected function name");
             }
             // Its a method
             else
             {
-                obj = Expression();
+                obj = this.Expression();
                 if (obj is Expr.Get get)
                 {
                     name = get.name;
                     obj = get.obj;
                 }
                 else
-                    throw Error(Peek(), "Expected method name");
+                    throw this.Error(this.Peek(), "Expected method name");
             }
 
             //if (defaultName.Length == 0)
@@ -721,24 +712,23 @@ namespace Ream.Parsing
 
             List<Token> parameters = new();
 
-            if (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace)))
+            if (!(this.Check(TokenType.Newline) || this.Check(TokenType.Left_Brace)))
             {
                 //if (defaultName.Length == 0)
-                Consume(TokenType.Colon, "Expected ':' after function name");
+                this.Consume(TokenType.Colon, "Expected ':' after function name");
 
                 do
                 {
-                    if (parameters.Count >= 255)
-                        Error(Peek(), "Maximum of 255 arguments allowed");
+                    if (parameters.Count >= 255) this.Error(this.Peek(), "Maximum of 255 arguments allowed");
 
-                    parameters.Add(Consume(TokenType.Identifier, "Expected parameter name"));
-                } while (!(Check(TokenType.Newline) || Check(TokenType.Left_Brace)));
+                    parameters.Add(this.Consume(TokenType.Identifier, "Expected parameter name"));
+                } while (!(this.Check(TokenType.Newline) || this.Check(TokenType.Left_Brace)));
             }
 
-            InsistEnd();
+            this.InsistEnd();
 
-            Consume(TokenType.Left_Brace, "Expected '{' before function body");
-            List<Stmt> body = Block();
+            this.Consume(TokenType.Left_Brace, "Expected '{' before function body");
+            List<Stmt> body = this.Block();
 
             if (obj == null)
                 return new Stmt.Function(name, type, parameters, body);
@@ -747,172 +737,172 @@ namespace Ream.Parsing
         }
         private Stmt VariableDeclaration<T>(VariableType type)
         {
-            Token name = Consume(TokenType.Identifier, "Expected variable name");
+            Token name = this.Consume(TokenType.Identifier, "Expected variable name");
 
             Expr initializer = null;
-            if (Match(TokenType.Equal))
+            if (this.Match(TokenType.Equal))
             {
-                initializer = Expression();
+                initializer = this.Expression();
             }
 
-            InsistEnd();
+            this.InsistEnd();
             return (Stmt)Activator.CreateInstance(typeof(T), name, initializer, type);
         }
         private Stmt VariableDeclaration<T>()
         {
-            Token name = Consume(TokenType.Identifier, "Expected variable name");
+            Token name = this.Consume(TokenType.Identifier, "Expected variable name");
 
             Expr initializer = null;
-            if (Match(TokenType.Equal))
+            if (this.Match(TokenType.Equal))
             {
-                initializer = Expression();
+                initializer = this.Expression();
             }
 
-            InsistEnd();
+            this.InsistEnd();
             return (Stmt)Activator.CreateInstance(typeof(T), name, initializer);
         }
         private Stmt ClassDeclaration()
         {
-            Token name = Consume(TokenType.Identifier, "Expected class name");
-            InsistEnd();
-            Consume(TokenType.Left_Brace, "Expected '{' before class body");
-            InsistEnd();
+            Token name = this.Consume(TokenType.Identifier, "Expected class name");
+            this.InsistEnd();
+            this.Consume(TokenType.Left_Brace, "Expected '{' before class body");
+            this.InsistEnd();
 
             List<Stmt.Function> functions = new();
             List<Stmt.Typed> variables = new();
-            while (!Check(TokenType.Right_Brace) && !AtEnd)
+            while (!this.Check(TokenType.Right_Brace) && !this.AtEnd)
             {
-                if (Peek().Type.IsVariableType())
+                if (this.Peek().Type.IsVariableType())
                 {
-                    VariableType dat = Advance().Type.ToVariableType();
-                    while (Peek().Type.IsVariableType())
+                    VariableType dat = this.Advance().Type.ToVariableType();
+                    while (this.Peek().Type.IsVariableType())
                     {
-                        dat |= Advance().Type.ToVariableType();
+                        dat |= this.Advance().Type.ToVariableType();
                     }
 
-                    if (Match(TokenType.Function))
+                    if (this.Match(TokenType.Function))
                     {
-                        Stmt stmt = FunctionDeclaration(dat);
+                        Stmt stmt = this.FunctionDeclaration(dat);
                         if (stmt is Stmt.Function func)
                             functions.Add(func);
                         else if (stmt is Stmt.Method)
-                            Error(Previous(), "Expected function, got method");
+                            this.Error(this.Previous(), "Expected function, got method");
                         else
-                            Error(Previous(), "Expected function");
+                            this.Error(this.Previous(), "Expected function");
                     }
-                    else if (Match(TokenType.Method))
+                    else if (this.Match(TokenType.Method))
                     {
-                        Error(Previous(), "Methods are not allowed in classes");
+                        this.Error(this.Previous(), "Methods are not allowed in classes");
                     }
                     else
-                        variables.Add(VariableDeclaration<Stmt.Typed>(dat) as Stmt.Typed);
+                        variables.Add(this.VariableDeclaration<Stmt.Typed>(dat) as Stmt.Typed);
                 }
                 else
                 {
-                    if (Match(TokenType.Function))
+                    if (this.Match(TokenType.Function))
                     {
-                        Stmt stmt = FunctionDeclaration(VariableType.Normal);
+                        Stmt stmt = this.FunctionDeclaration(VariableType.Normal);
                         if (stmt is Stmt.Function func)
                             functions.Add(func);
                         else if (stmt is Stmt.Method)
-                            Error(Previous(), "Expected function, got method");
+                            this.Error(this.Previous(), "Expected function, got method");
                         else
-                            Error(Previous(), "Expected function");
+                            this.Error(this.Previous(), "Expected function");
                     }
                     else
-                        variables.Add(VariableDeclaration<Stmt.Typed>(VariableType.Normal) as Stmt.Typed);
+                        variables.Add(this.VariableDeclaration<Stmt.Typed>(VariableType.Normal) as Stmt.Typed);
                 }
             }
 
-            Consume(TokenType.Right_Brace, "Expected '}' after class body");
-            InsistEnd();
+            this.Consume(TokenType.Right_Brace, "Expected '}' after class body");
+            this.InsistEnd();
 
             return new Stmt.Class(name, functions, variables);
         }
         private Stmt ExpressionStatement()
         {
-            Expr expr = Expression();
+            Expr expr = this.Expression();
 
-            if (allowExpression && AtEnd)
-                foundExpression = true;
+            if (this.allowExpression && this.AtEnd)
+                this.foundExpression = true;
             else
-                InsistEnd();
+                this.InsistEnd();
 
             return new Stmt.Expression(expr);
         }
         private Stmt EvaluateStatement()
         {
-            Expr value = Expression();
-            InsistEnd();
+            Expr value = this.Expression();
+            this.InsistEnd();
             return new Stmt.Evaluate(value);
         }
         private Stmt ImportStatement()
         {
             List<Token> name = new();
-            while (Check(TokenType.Identifier) || Check(TokenType.Period))
-                name.Add(Advance());
+            while (this.Check(TokenType.Identifier) || this.Check(TokenType.Period))
+                name.Add(this.Advance());
 
-            InsistEnd();
+            this.InsistEnd();
             return new Stmt.Import(name);
         }
         private Stmt IfStatement()
         {
-            Expr condition = Expression();
-            InsistEnd();
+            Expr condition = this.Expression();
+            this.InsistEnd();
 
-            Stmt thenBranch = Statement();
+            Stmt thenBranch = this.Statement();
 
             List<(Expr, Stmt)> elifBranches = new();
-            while (Match(TokenType.Elif))
+            while (this.Match(TokenType.Elif))
             {
-                InsistEnd();
-                Expr elifCondition = Expression();
-                InsistEnd();
-                Stmt elifBranch = Statement();
+                this.InsistEnd();
+                Expr elifCondition = this.Expression();
+                this.InsistEnd();
+                Stmt elifBranch = this.Statement();
                 elifBranches.Add((elifCondition, elifBranch));
             }
 
             Stmt elseBranch = null;
-            if (Match(TokenType.Else))
+            if (this.Match(TokenType.Else))
             {
-                InsistEnd();
-                elseBranch = Statement();
+                this.InsistEnd();
+                elseBranch = this.Statement();
             }
 
             return new Stmt.If(condition, thenBranch, elifBranches, elseBranch);
         }
         private Stmt WhileStatement()
         {
-            Expr condition = Expression();
-            InsistEnd();
+            Expr condition = this.Expression();
+            this.InsistEnd();
 
-            Stmt body = Statement();
+            Stmt body = this.Statement();
 
             return new Stmt.While(condition, body);
         }
         private Stmt ForStatement()
         {
             Token name = null;
-            if (Peek(1).Type == TokenType.Colon)
+            if (this.Peek(1).Type == TokenType.Colon)
             {
-                name = Consume(TokenType.Identifier, "Expected identifier after 'for'");
-                Consume(TokenType.Colon, "Expected ':' after 'for' identifier");
+                name = this.Consume(TokenType.Identifier, "Expected identifier after 'for'");
+                this.Consume(TokenType.Colon, "Expected ':' after 'for' identifier");
             }
-            Expr iterator = Expression();
-            InsistEnd();
+            Expr iterator = this.Expression();
+            this.InsistEnd();
 
-            Stmt body = Statement();
+            Stmt body = this.Statement();
 
             return new Stmt.For(name, iterator, body);
         }
         private void ExpectEnd()
         {
-            Consume(TokenType.Newline, "Expected line to end", true);
+            this.Consume(TokenType.Newline, "Expected line to end", true);
         }
         private bool InsistEnd()
         {
-            bool ended = Check(TokenType.Newline) || AtEnd;
-            if (ended) Advance();
+            bool ended = this.Check(TokenType.Newline) || this.AtEnd;
+            if (ended) this.Advance();
             return ended;
         }
     }

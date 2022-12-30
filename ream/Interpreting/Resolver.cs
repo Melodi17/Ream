@@ -30,96 +30,96 @@ namespace Ream.Interpreting
             switch (type)
             {
                 case TokenType.Equal_Equal:
-                    return Equal(left, right);
+                    return this.Equal(left, right);
                 case TokenType.Not_Equal:
-                    return !Equal(left, right);
+                    return !this.Equal(left, right);
 
                 case TokenType.Plus:
                     {
-                        IPropable prop = GetPropable(left);
+                        IPropable prop = this.GetPropable(left);
                         if (prop != null)
                             if (prop.Get(OPERATOR_ADD) is ICallable func)
-                                return func.Call(interpreter, new() { right });
+                                return func.Call(this.interpreter, new() { right });
 
                         return null;
                     }
 
                 case TokenType.Minus:
                     {
-                        IPropable prop = GetPropable(left);
+                        IPropable prop = this.GetPropable(left);
                         if (prop != null)
                             if (prop.Get(OPERATOR_SUBTRACT) is ICallable func)
-                                return func.Call(interpreter, new() { right });
+                                return func.Call(this.interpreter, new() { right });
 
                         return null;
                     }
 
                 case TokenType.Star:
                     {
-                        IPropable prop = GetPropable(left);
+                        IPropable prop = this.GetPropable(left);
                         if (prop != null)
                             if (prop.Get(OPERATOR_MULTIPLY) is ICallable func)
-                                return func.Call(interpreter, new() { right });
+                                return func.Call(this.interpreter, new() { right });
 
                         return null;
                     }
 
                 case TokenType.Slash:
                     {
-                        IPropable prop = GetPropable(left);
+                        IPropable prop = this.GetPropable(left);
                         if (prop != null)
                             if (prop.Get(OPERATOR_DIVIDE) is ICallable func)
-                                return func.Call(interpreter, new() { right });
+                                return func.Call(this.interpreter, new() { right });
 
                         return null;
                     }
 
                 case TokenType.Percent:
                     {
-                        IPropable prop = GetPropable(left);
+                        IPropable prop = this.GetPropable(left);
                         if (prop != null)
                             if (prop.Get(OPERATOR_MODULUS) is ICallable func)
-                                return func.Call(interpreter, new() { right });
+                                return func.Call(this.interpreter, new() { right });
 
                         return null;
                     }
 
                 case TokenType.Greater:
                     {
-                        IPropable prop = GetPropable(left);
+                        IPropable prop = this.GetPropable(left);
                         if (prop != null)
                             if (prop.Get(OPERATOR_GREATER) is ICallable func)
-                                return Truthy(func.Call(interpreter, new() { right }));
+                                return this.Truthy(func.Call(this.interpreter, new() { right }));
 
                         return null;
                     }
 
                 case TokenType.Greater_Equal:
                     {
-                        IPropable prop = GetPropable(left);
+                        IPropable prop = this.GetPropable(left);
                         if (prop != null)
                             if (prop.Get(OPERATOR_GREATER) is ICallable func)
-                                return Truthy(func.Call(interpreter, new() { right })) || Equal(left, right);
+                                return this.Truthy(func.Call(this.interpreter, new() { right })) || this.Equal(left, right);
 
                         return null;
                     }
 
                 case TokenType.Less:
                     {
-                        IPropable prop = GetPropable(left);
+                        IPropable prop = this.GetPropable(left);
                         if (prop != null)
                             if (prop.Get(OPERATOR_LESS) is ICallable func)
-                                return Truthy(func.Call(interpreter, new() { right }));
+                                return this.Truthy(func.Call(this.interpreter, new() { right }));
 
                         return null;
                     }
 
                 case TokenType.Less_Equal:
                     {
-                        IPropable prop = GetPropable(left);
+                        IPropable prop = this.GetPropable(left);
                         if (prop != null)
                             if (prop.Get(OPERATOR_LESS) is ICallable func)
-                                return Truthy(func.Call(interpreter, new() { right })) || Equal(left, right);
+                                return this.Truthy(func.Call(this.interpreter, new() { right })) || this.Equal(left, right);
 
                         return null;
                     }
@@ -132,18 +132,18 @@ namespace Ream.Interpreting
             if (left == null && right == null) return true;
             if (left == null) return false;
 
-            IPropable prop = GetPropable(left);
+            IPropable prop = this.GetPropable(left);
             if (prop != null)
             {
                 if (prop.Get(OVERRIDE_EQUAL) is ICallable func)
-                    return Truthy(func.Call(interpreter, new() { right }));
+                    return this.Truthy(func.Call(this.interpreter, new() { right }));
             }
 
             return left.Equals(right);
         }
         public object LogicalCompare(object left, object right)
         {
-            return Truthy(left) ? left : right;
+            return this.Truthy(left) ? left : right;
         }
         public IPropable GetPropable(object obj)
         {
@@ -193,11 +193,11 @@ namespace Ream.Interpreting
 
         public string Stringify(object obj)
         {
-            IPropable prop = GetPropable(obj);
+            IPropable prop = this.GetPropable(obj);
             if (prop != null)
             {
                 if (prop.Get(OVERRIDE_STRINGIFY) is ICallable func)
-                    return func.Call(interpreter, new(0)).ToString();
+                    return func.Call(this.interpreter, new(0)).ToString();
             }
 
             return obj?.ToString();
@@ -206,23 +206,23 @@ namespace Ream.Interpreting
         public object ToNative(Type t, object obj)
         {
             if (obj == null) return null;
-            if (t == typeof(bool) && obj is not bool) return Truthy(obj);
-            if (t == typeof(string) && obj is not string) return Stringify(obj);
+            if (t == typeof(bool) && obj is not bool) return this.Truthy(obj);
+            if (t == typeof(string) && obj is not string) return this.Stringify(obj);
             if (t == typeof(byte)
                 && t == typeof(short)
                 && t == typeof(int)
                 && t == typeof(long)
-                && obj is double d) return GetInt(d);
+                && obj is double d) return this.GetInt(d);
             return obj;
         }
 
         public List<object> GetIterator(object obj)
         {
-            IPropable prop = GetPropable(obj);
+            IPropable prop = this.GetPropable(obj);
             if (prop != null)
             {
                 if (prop.Get(OVERRIDE_ITERATOR) is ICallable func)
-                    return (List<object>)func.Call(interpreter, new(0));
+                    return (List<object>)func.Call(this.interpreter, new(0));
             }
 
             return null;
@@ -230,14 +230,14 @@ namespace Ream.Interpreting
 
         public object GetIndex(object obj, object ind)
         {
-            IPropable prop = GetPropable(obj);
+            IPropable prop = this.GetPropable(obj);
             if (prop != null)
             {
                 if (prop.Get(OVERRIDE_INDEX) is ICallable func)
-                    return func.Call(interpreter, new() { ind });
+                    return func.Call(this.interpreter, new() { ind });
 
                 if (ind is double d)
-                    return GetIterator(obj)[GetInt(d)];
+                    return this.GetIterator(obj)[this.GetInt(d)];
             }
 
             return null;
@@ -245,14 +245,14 @@ namespace Ream.Interpreting
 
         public object GetMix(object obj, object ind, object value)
         {
-            IPropable prop = GetPropable(obj);
+            IPropable prop = this.GetPropable(obj);
             if (prop != null)
             {
                 if (prop.Get(OVERRIDE_MIX) is ICallable func)
-                    return func.Call(interpreter, new() { ind, value });
+                    return func.Call(this.interpreter, new() { ind, value });
 
                 if (ind is double d)
-                    return GetIterator(obj)[GetInt(d)];
+                    return this.GetIterator(obj)[this.GetInt(d)];
             }
 
             return null;

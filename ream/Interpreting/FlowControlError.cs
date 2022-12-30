@@ -12,7 +12,7 @@ namespace Ream.Interpreting
         public Token SourceToken { get; private set; }
         public FlowControlError(Token source) : base(null, null)
         {
-            SourceToken = source;
+            this.SourceToken = source;
         }
     }
     public class Return : FlowControlError
@@ -21,7 +21,7 @@ namespace Ream.Interpreting
 
         public Return(Token source, object value) : base(source)
         {
-            Value = value;
+            this.Value = value;
         }
     }
     public class Break : FlowControlError

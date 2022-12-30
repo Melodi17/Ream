@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization.Formatters.Binary;
-using Ream;
-using Ream.Interpreting;
+﻿using Ream.Interpreting;
 using Ream.Lexing;
 using Ream.Parsing;
 using Ream.Tools;
@@ -26,19 +24,12 @@ namespace Ream
                 UpdateAST();
 
             string keyword = args.Length > 0 ? args[0].ToLower() : "";
-            if (keyword == "build")
+            if (keyword == "time")
             {
-                string sourceFile = string.Join(" ", args.Skip(1));
-                string destfile = Path.Join(Path.GetDirectoryName(sourceFile),
-                    Path.GetFileNameWithoutExtension(sourceFile) + ".cr");
-                Compile(sourceFile, destfile);
-            }
-            else if (keyword == "time")
-            {
-                var startTime = DateTime.Now;
+                DateTime startTime = DateTime.Now;
                 RunFile(string.Join(" ", args.Skip(1)));
-                var endTime = DateTime.Now;
-                var duration = endTime - startTime;
+                DateTime endTime = DateTime.Now;
+                TimeSpan duration = endTime - startTime;
                 Console.WriteLine($"Execution took {duration}");
             }
             else if (args.Any())
@@ -49,14 +40,15 @@ namespace Ream
 
         private static void UpdateAST()
         {
-            ASTGenerator.DefineAst(Path.Join("..", "..", "..", "Parsing", "ASTExpr.cs"), "Expr", new string[]
+            ASTGenerator.DefineAst(Path.Join("..", "..", "..", "Parsing", "ASTExpr.cs"), "Expr", new[]
             {
                 "Assign     : Token name, Expr value",
                 "Binary     : Expr left, Token @operator, Expr right",
                 "Ternary    : Expr left, Token leftOperator, Expr middle, Token rightOperator, Expr right",
                 "Call       : Expr callee, Token paren, List<Expr> arguments",
                 "Indexer    : Expr callee, Token paren, Expr index",
-                "Mixer      : Expr.Indexer indexer, Expr value",
+                "SetIndexer : Expr.Indexer indexer, Expr value",
+                "Set        : Expr obj, Token name, Expr value",
                 "Get        : Expr obj, Token name",
                 "Chain      : Expr.Call call",
                 "Grouping   : Expr expression",
@@ -65,11 +57,9 @@ namespace Ream
                 "Lambda     : List<Token> parameters, List<Stmt> body",
                 "Literal    : Object value",
                 "Logical    : Expr left, Token @operator, Expr right",
-                "Set        : Expr obj, Token name, Expr value",
                 "This       : Token keyword",
                 "Unary      : Token @operator, Expr right",
-                "Translate  : Token @operator, Token name",
-                "Variable   : Token name"
+                "Variable   : Token name",
             }.ToList());
 
             ASTGenerator.DefineAst(Path.Join("..", "..", "..", "Interpreting", "Stmt.cs"), "Stmt", new string[]
@@ -96,11 +86,7 @@ namespace Ream
 
         public static void RunFile(string path)
         {
-            string ext = Path.GetExtension(path);
-            if (ext == ".cr")
-                RunCompiled(File.ReadAllBytes(path));
-            else
-                Run(File.ReadAllText(path));
+            Run(File.ReadAllText(path));
 
             if (ErrorOccured) Environment.Exit(65);
             if (RuntimeErrorOccured) Environment.Exit(70);
@@ -186,23 +172,6 @@ namespace Ream
             //Console.WriteLine("Pointer count: " + Pointer.GetPointerCount());
             //Console.WriteLine(new ASTPrinter().Print(expression));
         }
-        public static void Compile(string sourceFile, string destinationFile)
-        {
-            Lexer lexer = new(File.ReadAllText(sourceFile));
-            List<Token> tokens = lexer.Lex();
-            Parser parser = new(tokens);
-            List<Stmt> statements = parser.Parse();
-
-            if (ErrorOccured) return;
-
-            File.WriteAllBytes(destinationFile, SerializeBinary(statements));
-        }
-        public static void RunCompiled(byte[] source)
-        {
-            List<Stmt> statements = DeserializeBinary<List<Stmt>>(source);
-
-            Interpreter.Interpret(statements);
-        }
         public static void RuntimeError(RuntimeError error)
         {
             if (error.Token != null)
@@ -228,27 +197,6 @@ namespace Ream
         public static void Report(int line, string location, string message)
         {
             Console.Error.WriteLine($"Error on line {line}{location}: {message}");
-        }
-
-        public static T DeserializeBinary<T>(byte[] data)
-        {
-            using (var stream = new MemoryStream(data))
-            {
-                var formatter = new BinaryFormatter();
-                stream.Seek(0, SeekOrigin.Begin);
-                return (T)formatter.Deserialize(stream);
-            }
-        }
-        public static byte[] SerializeBinary<T>(T data)
-        {
-            using (var stream = new MemoryStream())
-            {
-                var formatter = new BinaryFormatter();
-                formatter.Serialize(stream, data);
-                stream.Flush();
-                stream.Position = 0;
-                return stream.ToArray();
-            }
         }
     }
 }

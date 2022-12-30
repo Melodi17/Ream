@@ -10,14 +10,6 @@ namespace Ream.Interpreting
         public object Call(Interpreter interpreter, List<object> arguments);
     }
 
-    public class BuiltFunction
-    {
-        public ICallable Callable;
-        public Interpreter Interpreter;
-        public object Call(List<object> arguments)
-            => this.Callable.Call(this.Interpreter, arguments);
-    }
-
     public class ExternalFunction : ICallable
     {
         public Func<object, List<object>, object> _func;
@@ -37,7 +29,7 @@ namespace Ream.Interpreting
         {
             this.mi = info;
             this._argumentCount = info.GetParameters().Length;
-            this._func = new Func<object, List<object>, object>((ctx, args) =>
+            this._func = new((ctx, args) =>
                  info.Invoke(ctx, args.ToArray()));
             this.Type = VariableType.Normal;
             if (info.IsStatic && !this.Type.HasFlag(VariableType.Static))
@@ -51,7 +43,7 @@ namespace Ream.Interpreting
         public object Call(Interpreter interpreter, List<object> arguments)
         {
             // Attempt to cast all the types for it
-            if (mi != null)
+            if (this.mi != null)
             {
                 ParameterInfo[] parameters = this.mi.GetParameters();
                 for (int i = 0; i < parameters.Length; i++)
@@ -81,7 +73,7 @@ namespace Ream.Interpreting
                 ClassRef = clss,
                 Name = this.Name,
                 Type = this.Type,
-                _argumentCount = _argumentCount,
+                _argumentCount = this._argumentCount,
                 _func = this._func
             };
         }
@@ -127,25 +119,25 @@ namespace Ream.Interpreting
             // Clone it
             Scope scope = new(this.ParentScope);
             scope.Set("this", instance, VariableType.Local);
-            return new Function(this.parameters, this.body, scope);
+            return new(this.parameters, this.body, scope);
         }
 
         public int ArgumentCount()
         {
-            return parameters.Count;
+            return this.parameters.Count;
         }
 
         public object Call(Interpreter interpreter, List<object> arguments)
         {
             Scope scope = new(this.ParentScope);
-            for (int i = 0; i < parameters.Count; i++)
+            for (int i = 0; i < this.parameters.Count; i++)
             {
-                scope.Set(parameters[i], arguments.ElementAtOrDefault(i) ?? null, VariableType.Local);
+                scope.Set(this.parameters[i], arguments.ElementAtOrDefault(i) ?? null, VariableType.Local);
             }
 
             try
             {
-                interpreter.ExecuteBlock(body, scope);
+                interpreter.ExecuteBlock(this.body, scope);
             }
             catch (Return returnVal)
             {

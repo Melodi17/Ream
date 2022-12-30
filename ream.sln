@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ream", "ream\ream.csproj", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Libraries", "Libraries\Libraries.csproj", "{69E734CA-32F9-4960-B6DC-5D048B4084E9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReamTests", "ReamTests\ReamTests.csproj", "{BFA31267-4721-4E68-9D52-EB65A8C2F315}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{69E734CA-32F9-4960-B6DC-5D048B4084E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{69E734CA-32F9-4960-B6DC-5D048B4084E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{69E734CA-32F9-4960-B6DC-5D048B4084E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFA31267-4721-4E68-9D52-EB65A8C2F315}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFA31267-4721-4E68-9D52-EB65A8C2F315}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFA31267-4721-4E68-9D52-EB65A8C2F315}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFA31267-4721-4E68-9D52-EB65A8C2F315}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

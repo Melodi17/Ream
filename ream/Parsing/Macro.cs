@@ -12,7 +12,7 @@ namespace Ream.Parsing
 
         public List<Token> Call()
         {
-            return Body;
+            return this.Body;
         }
     }
 }

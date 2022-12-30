@@ -34,7 +34,7 @@ namespace Ream.Tools
             List<List<T>> dest = new();
 
             List<T> current = new();
-            foreach (var chunk in source)
+            foreach (T chunk in source)
             {
                 if (separator(chunk))
                 {
