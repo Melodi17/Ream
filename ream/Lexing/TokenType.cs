@@ -2,27 +2,27 @@
 {
     public enum TokenType
     {
-        Identifier, Interger, String, Boolean,
+        Identifier, Integer, String,
 
-        Left_Parenthesis, Right_Parenthesis,
-        Left_Brace, Right_Brace, Left_Square,
-        Right_Square,
+        LeftParenthesis, RightParenthesis,
+        LeftBrace, RightBrace, LeftSquare,
+        RightSquare,
 
         Comma, Period, Plus, Minus, Star, Slash,
         Colon, Ampersand, Pipe, Equal, Not, Greater,
-        Less, Question, Chain, Dollar,
+        Less, Question, Chain,
 
-        Not_Equal, Equal_Equal, Greater_Equal, 
-        Less_Equal, Plus_Equal, Minus_Equal, Star_Equal,
-        Slash_Equal, Colon_Colon, Ampersand_Ampersand,
-        Pipe_Pipe, Prototype, Plus_Plus, Minus_Minus,
-        Percent, Percent_Percent,
+        NotEqual, EqualEqual, GreaterEqual, 
+        LessEqual, PlusEqual, MinusEqual, StarEqual,
+        SlashEqual, ColonColon, AmpersandAmpersand,
+        PipePipe, PlusPlus, MinusMinus, Percent,
+        PercentPercent,
 
         If, Else, Elif, For, While, Function, Global,
         Return, Null, Class, This, True, False, Local,
-        Lambda, Dynamic, Final, Static ,Import, Evaluate,
-        Continue, Break, Macro, Method,
+        Lambda, Dynamic, Final, Static ,Import, Continue,
+        Break, Dispose,
 
-        Newline, End
+        Newline, End,
     }
 }

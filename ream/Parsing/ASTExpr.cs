@@ -24,6 +24,7 @@ namespace Ream.Parsing
          public T VisitLiteralExpr(Literal expr);
          public T VisitLogicalExpr(Logical expr);
          public T VisitThisExpr(This expr);
+         public T VisitDisposeExpr(Dispose expr);
          public T VisitUnaryExpr(Unary expr);
          public T VisitVariableExpr(Variable expr);
      }
@@ -302,6 +303,23 @@ namespace Ream.Parsing
           public override T Accept<T>(Visitor<T> visitor)
           {
              return visitor.VisitThisExpr(this);
+          }
+      }
+
+     [Serializable] public class Dispose : Expr
+      {
+     public readonly Token keyword;
+     public readonly Expr expression;
+
+         public Dispose(Token keyword, Expr expression)
+          {
+             this.keyword = keyword;
+             this.expression = expression;
+          }
+
+          public override T Accept<T>(Visitor<T> visitor)
+          {
+             return visitor.VisitDisposeExpr(this);
           }
       }
 

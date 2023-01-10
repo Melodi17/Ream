@@ -2,6 +2,7 @@
 
 public class ReamNumber : ReamObject
 {
+    private static readonly Dictionary<double, ReamNumber> cache = new();
     private readonly double _value;
 
     private ReamNumber(double value)
@@ -10,16 +11,34 @@ public class ReamNumber : ReamObject
     }
     
     // Conversions
-    public static ReamNumber From(double value) => new(value);
-    public static ReamNumber From(float value) => new(value);
-    public static ReamNumber From(decimal value) => new((double)value);
-    public static ReamNumber From(int value) => new(value);
-    public static ReamNumber From(long value) => new(value);
-    public static ReamNumber From(short value) => new(value);
-    public static ReamNumber From(byte value) => new(value);
+    public static ReamNumber From(double value)
+    {
+        if (!cache.ContainsKey(value))
+            cache.Add(value, new(value));
+        
+        return cache[value];
+    }
+    public static ReamNumber From(float value) => From((double)value);
+    public static ReamNumber From(decimal value) => From((double)value);
+    public static ReamNumber From(int value) => From((double)value);
+    public static ReamNumber From(long value) => From((double)value);
+    public static ReamNumber From(short value) => From((double)value);
+    public static ReamNumber From(byte value) => From((double)value);
     
     // Core behaviours
+    protected override void DisposeManaged() { /* Do nothing */ }
+
+    protected override void DisposeUnmanaged()
+    {
+        if (cache.ContainsKey(this._value))
+            cache.Remove(this._value);
+    }
     public override object Represent() => this._value;
+    public override T RepresentAs<T>()
+    {
+        return (T)Convert.ChangeType(this._value, typeof(T));
+    }
+
     public override ReamString Type() => ReamString.From("number");
     public override ReamBoolean Truthy() => ReamBoolean.From(this._value != 0);
 

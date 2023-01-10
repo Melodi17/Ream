@@ -2,6 +2,7 @@
 
 public class ReamString : ReamObject
 {
+    private static readonly Dictionary<string, ReamString> cache = new();
     public static ReamString Empty = new(string.Empty);
     
     private readonly string _value;
@@ -12,11 +13,23 @@ public class ReamString : ReamObject
     }
 
     // Conversions
-    public static ReamString From(string value) => new(value);
-    public static ReamString From(char value) => new(value.ToString());
+    public static ReamString From(string value)
+    {
+        if (!cache.ContainsKey(value))
+            cache.Add(value, new(value));
+        
+        return cache[value];
+    }
+    public static ReamString From(char value) => From(value.ToString());
 
 
     // Core behaviours
+    protected override void DisposeManaged() { /* Do nothing */ }
+    protected override void DisposeUnmanaged()
+    {
+        if (cache.ContainsKey(this._value))
+            cache.Remove(this._value);
+    }
     public override object Represent() => this._value;
     public override ReamString Type() => ReamString.From("string");
     public override ReamBoolean Truthy() => ReamBoolean.From(this._value.Length > 0);
@@ -25,27 +38,25 @@ public class ReamString : ReamObject
     public override ReamSequence Iterate() => ReamSequence.From(this._value.Select(ReamString.From));
     public override ReamObject Index(ReamObject index) => ReamString.From(this._value[index.RepresentAs<int>()]);
     public override ReamString String() => ReamString.From($"'{this._value}'");
-    public override ReamObject Member(string name)
+    public override ReamObject Member(string name) => name switch
     {
-        return name switch
-        {
-            // Properties
-            nameof(this.Length) => this.Length(),
+        // Properties
+        "length" => this.Length(),
             
-            // Methods
-            nameof(this.Contains) => ReamFunctionExternal.From(this.Contains),
-            nameof(this.Starts) => ReamFunctionExternal.From(this.Starts),
-            nameof(this.Ends) => ReamFunctionExternal.From(this.Ends),
-            nameof(this.Replace) => ReamFunctionExternal.From(this.Replace),
-            nameof(this.Substring) => ReamFunctionExternal.From(this.Substring),
-            nameof(this.Upper) => ReamFunctionExternal.From(this.Upper),
-            nameof(this.Lower) => ReamFunctionExternal.From(this.Lower),
-            nameof(this.Trim) => ReamFunctionExternal.From(this.Trim),
-            nameof(this.Split) => ReamFunctionExternal.From(this.Split),
+        // Methods
+        "contains" => ReamFunctionExternal.From(this.Contains),
+        "starts" => ReamFunctionExternal.From(this.Starts),
+        "ends" => ReamFunctionExternal.From(this.Ends),
+        "replace" => ReamFunctionExternal.From(this.Replace),
+        "substring" => ReamFunctionExternal.From(this.Substring),
+        "upper" => ReamFunctionExternal.From(this.Upper),
+        "lower" => ReamFunctionExternal.From(this.Lower),
+        "trim" => ReamFunctionExternal.From(this.Trim),
+        "split" => ReamFunctionExternal.From(this.Split),
+        "find" => ReamFunctionExternal.From(this.Find),
 
-            _ => base.Member(name)
-        };
-    }
+        _ => base.Member(name),
+    };
 
     // Arithmetic operators
     public override ReamObject Add(ReamObject other)
@@ -70,4 +81,5 @@ public class ReamString : ReamObject
     public ReamString Lower() => ReamString.From(this._value.ToLower());
     public ReamString Trim() => ReamString.From(this._value.Trim());
     public ReamSequence Split(ReamString separator) => ReamSequence.From(this._value.Split(separator._value));
+    public ReamNumber Find(ReamString other) => ReamNumber.From(this._value.IndexOf(other._value, StringComparison.Ordinal));
 }

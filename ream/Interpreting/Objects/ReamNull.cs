@@ -8,6 +8,8 @@ public class ReamNull : ReamObject
 
 
     // Core behaviours
+    protected override void DisposeManaged() { /* Do nothing */ }
+    protected override void DisposeUnmanaged() { /* Do nothing */ }
     public override ReamString Type() => ReamString.From("null");
     public override ReamBoolean Truthy() => ReamBoolean.False;
     public override object Represent() => null;

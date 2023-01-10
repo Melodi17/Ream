@@ -70,8 +70,21 @@ public class ObjectTests
         ReamString reamString = ReamString.From("Hello World!");
         ReamSequence reamObject = reamString.Split(ReamString.From(" "));
         
-        Assert.AreEqual(reamObject.Length().RepresentAs<int>(), 2);
+        Assert.AreEqual(reamObject.Length.RepresentAs<int>(), 2);
         Assert.AreEqual(reamObject.Index(ReamNumber.From(0)).RepresentAs<string>(), "Hello");
         Assert.AreEqual(reamObject.Index(ReamNumber.From(1)).RepresentAs<string>(), "World!");
+    }
+
+    [Test]
+    public void StringContains()
+    {
+        // Write a test to check if a string contains a substring using the .Contains() method
+        
+        ReamString reamString = ReamString.From("Hello World!");
+        ReamBoolean reamObject = reamString.Contains(ReamString.From("World"));
+        Assert.IsTrue(reamObject.RepresentAs<bool>());
+        
+        reamObject = reamString.Contains(ReamString.From("Apple"));
+        Assert.IsFalse(reamObject.RepresentAs<bool>());
     }
 }

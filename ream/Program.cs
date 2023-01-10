@@ -58,6 +58,7 @@ namespace Ream
                 "Literal    : Object value",
                 "Logical    : Expr left, Token @operator, Expr right",
                 "This       : Token keyword",
+                "Dispose    : Token keyword, Expr expression",
                 "Unary      : Token @operator, Expr right",
                 "Variable   : Token name",
             }.ToList());
@@ -97,15 +98,15 @@ namespace Ream
         }
         private static int GetTotalDepth(List<Token> tokens)
         {
-            return GetDepth(tokens, TokenType.Left_Brace, TokenType.Right_Brace)
-                + GetDepth(tokens, TokenType.Left_Parenthesis, TokenType.Right_Parenthesis)
-                + GetDepth(tokens, TokenType.Left_Square, TokenType.Right_Square);
+            return GetDepth(tokens, TokenType.LeftBrace, TokenType.RightBrace)
+                + GetDepth(tokens, TokenType.LeftParenthesis, TokenType.RightParenthesis)
+                + GetDepth(tokens, TokenType.LeftSquare, TokenType.RightSquare);
         }
         private static bool IsFinished(List<Token> tokens)
         {
-            return GetDepth(tokens, TokenType.Left_Brace, TokenType.Right_Brace) == 0
-                && GetDepth(tokens, TokenType.Left_Parenthesis, TokenType.Right_Parenthesis) == 0
-                && GetDepth(tokens, TokenType.Left_Square, TokenType.Right_Square) == 0;
+            return GetDepth(tokens, TokenType.LeftBrace, TokenType.RightBrace) == 0
+                && GetDepth(tokens, TokenType.LeftParenthesis, TokenType.RightParenthesis) == 0
+                && GetDepth(tokens, TokenType.LeftSquare, TokenType.RightSquare) == 0;
         }
         private static void RunPrompt()
         {
@@ -134,7 +135,7 @@ namespace Ream
                 List<Token> tokens = lexer.Lex();
                 while (!IsFinished(tokens))
                 {
-                    Console.Write(". " + string.Join("", Enumerable.Repeat<string>(". ", GetTotalDepth(tokens))));
+                    Console.Write(". " + string.Join("", Enumerable.Repeat(". ", GetTotalDepth(tokens))));
                     string txt = Console.ReadLine();
                     tokens.AddRange(new Lexer(txt).Lex());
                     tokens.Add(new(TokenType.Newline, "\n", '\n', tokens.Count(x => x.Type == TokenType.Newline)));
@@ -152,9 +153,11 @@ namespace Ream
                     Interpreter.Interpret(list);
                 else if (syntax is Expr expr)
                 {
-                    string result = Interpreter.resolver.Stringify(Interpreter.Interpret(expr));
-                    if (result != null)
-                        Console.WriteLine(result);
+                    
+                    //string result = Interpreter.resolver.Stringify(Interpreter.Interpret(expr));
+                    //if (result != null)
+                    //    Console.WriteLine(result);
+                    //TODO: Fix
                 }
             }
         }

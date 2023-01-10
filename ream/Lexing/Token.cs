@@ -1,6 +1,6 @@
 ﻿namespace Ream.Lexing
 {
-    [Serializable] public class Token
+    public class Token
     {
         public readonly TokenType Type;
         public readonly string Raw;
@@ -27,9 +27,6 @@
         {
             return $"{this.Type} {this.Raw} {this.Literal}";
         }
-
-        public static implicit operator Token(string raw)
-            => new(raw);
 
 
         public override bool Equals(object obj)
