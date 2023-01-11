@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System.Net;
+using System.Net.Sockets;
+using System.Reflection;
 using ream.Interpreting.Objects;
 using Ream.Lexing;
 using Ream.Parsing;
@@ -15,27 +17,29 @@ namespace Ream.Interpreting;
  * 6. Braces start on the same line as the statement
  * 7. Chained statements, eg else if, are on the different lines to the previous statement
  */
-
 public class Flags
 {
     public bool Strict = false;
+
     public void Exit(int? code)
     {
         Environment.Exit(code ?? 0);
     }
+
     public string Type(ReamObject obj)
     {
         return obj.Type().RepresentAs<string>();
     }
 }
-
 public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, IDisposable
 {
+    public static Interpreter Instance => instance ??= new();
+    private static Interpreter instance;
     public readonly Scope Globals;
     private Scope _scope;
     private Flags _flags;
 
-    public Interpreter(Scope defaultScope = null)
+    private Interpreter(Scope defaultScope = null)
     {
         this.Globals = defaultScope ?? new Scope();
         this._scope = new(this.Globals);
@@ -84,11 +88,6 @@ public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, I
         return expr?.Accept(this);
     }
 
-    public ReamReference EvaluateReference(Expr expr)
-    {
-        throw new NotImplementedException();
-    }
-
     public ReamObject Evaluate(Expr expr, Scope scope)
     {
         Scope previous = this._scope;
@@ -131,6 +130,29 @@ public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, I
         stmt?.Accept(this);
     }
 
+    public bool SetReference(Expr expr, ReamObject value)
+    {
+        switch (expr)
+        {
+            case Expr.Variable variable:
+                this._scope.Set(variable.name.Raw, value);
+                return true;
+            
+            case Expr.Get get:
+                ReamObject obj = this.Evaluate(get.obj);
+                obj.SetMember(get.name.Raw, value);
+                return true;
+            
+            case Expr.Indexer indexer:
+                ReamObject callee = this.Evaluate(indexer.callee);
+                ReamObject index = this.Evaluate(indexer.index);
+                callee.SetIndex(index, value);
+                return true;
+        }
+        
+        return false;
+    }
+
     public void LoadAssemblyLibrary(Assembly asm)
     {
         foreach (Type type in asm.GetTypes()
@@ -150,102 +172,202 @@ public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, I
 
     public ReamObject VisitAssignExpr(Expr.Assign expr)
     {
-        throw new NotImplementedException();
+        ReamObject value = this.Evaluate(expr);
+        this._scope.Set(expr.name.Raw, value);
+        return value;
     }
 
     public ReamObject VisitBinaryExpr(Expr.Binary expr)
     {
-        throw new NotImplementedException();
+        ReamObject left = this.Evaluate(expr.left);
+        ReamObject right = this.Evaluate(expr.right);
+
+        if (expr.@operator.Type is TokenType.PlusEqual or TokenType.MinusEqual or TokenType.StarEqual or TokenType.SlashEqual)
+        {
+            ReamObject result = expr.@operator.Type switch
+            {
+                TokenType.PlusEqual => left.Add(right),
+                TokenType.MinusEqual => left.Subtract(right),
+                TokenType.StarEqual => left.Multiply(right),
+                TokenType.SlashEqual => left.Divide(right),
+                _ => throw new("Invalid operator type."),
+            };
+
+            if (!this.SetReference(expr.left, result))
+                throw new("Invalid assignment target.");
+
+            return result;
+        }
+        else
+        {
+            return expr.@operator.Type switch
+            {
+                TokenType.Greater => left.Greater(right),
+                TokenType.GreaterEqual => left.GreaterEqual(right),
+                TokenType.Less => left.Less(right),
+                TokenType.LessEqual => left.LessEqual(right),
+                TokenType.EqualEqual => left.Equal(right),
+                TokenType.NotEqual => left.NotEqual(right),
+                TokenType.Plus => left.Add(right),
+                TokenType.Minus => left.Subtract(right),
+                TokenType.Star => left.Multiply(right),
+                TokenType.Slash => left.Divide(right),
+                TokenType.Modulo => left.Modulo(right),
+                TokenType.Ampersand => ReamBoolean.From(left.Truthy().RepresentAs<bool>() && right.Truthy().RepresentAs<bool>()),
+                TokenType.Pipe => ReamBoolean.From(left.Truthy().RepresentAs<bool>() && right.Truthy().RepresentAs<bool>()),
+                _ => throw new("Invalid operator type."),
+            };
+        }
     }
 
     public ReamObject VisitTernaryExpr(Expr.Ternary expr)
     {
-        throw new NotImplementedException();
+        bool condition = this.Evaluate(expr.left).Truthy().RepresentAs<bool>();
+        return this.Evaluate(condition ? expr.middle : expr.right);
     }
 
     public ReamObject VisitCallExpr(Expr.Call expr)
     {
-        throw new NotImplementedException();
+        ReamObject callee = this.Evaluate(expr.callee);
+        List<ReamObject> arguments = expr.arguments.Select(this.Evaluate).ToList();
+        ReamSequence sequence = ReamSequence.From(arguments);
+        return callee.Call(sequence);
     }
 
     public ReamObject VisitIndexerExpr(Expr.Indexer expr)
     {
-        throw new NotImplementedException();
+        ReamObject callee = this.Evaluate(expr.callee);
+        ReamObject index = this.Evaluate(expr.index);
+        return callee.Index(index);
     }
 
     public ReamObject VisitSetIndexerExpr(Expr.SetIndexer expr)
     {
-        throw new NotImplementedException();
+        ReamObject callee = this.Evaluate(expr.indexer.callee);
+        ReamObject index = this.Evaluate(expr.indexer.index);
+        ReamObject value = this.Evaluate(expr.value);
+        return callee.SetIndex(index, value);
     }
 
     public ReamObject VisitSetExpr(Expr.Set expr)
     {
-        throw new NotImplementedException();
+        ReamObject obj = this.Evaluate(expr.obj);
+        ReamObject value = this.Evaluate(expr.value);
+        obj.SetMember(expr.name.Raw, value);
+        return value;
     }
 
     public ReamObject VisitGetExpr(Expr.Get expr)
     {
-        throw new NotImplementedException();
+        ReamObject obj = this.Evaluate(expr.obj);
+        return obj.Member(expr.name.Raw);
     }
 
     public ReamObject VisitChainExpr(Expr.Chain expr)
     {
-        throw new NotImplementedException();
+        Expr.Get callee = expr.call.callee as Expr.Get;
+
+        if (callee is null)
+        {
+            throw new("Invalid chain expression.");
+        }
+
+        ReamObject obj = this.Evaluate(callee.obj);
+        ReamObject member = obj.Member(callee.name.Raw);
+        List<ReamObject> arguments = expr.call.arguments.Select(this.Evaluate).ToList();
+
+        member.Call(ReamSequence.From(arguments));
+        return obj;
     }
 
     public ReamObject VisitGroupingExpr(Expr.Grouping expr)
     {
-        throw new NotImplementedException();
+        return this.Evaluate(expr.expression);
     }
 
     public ReamObject VisitSequenceExpr(Expr.Sequence expr)
     {
-        throw new NotImplementedException();
+        List<ReamObject> items = expr.items.Select(this.Evaluate).ToList();
+        return ReamSequence.From(items);
     }
 
     public ReamObject VisitDictionaryExpr(Expr.Dictionary expr)
     {
-        throw new NotImplementedException();
+        Dictionary<ReamObject, ReamObject> items = new();
+
+        foreach (KeyValuePair<Expr, Expr> pair in expr.items)
+        {
+            ReamObject key = this.Evaluate(pair.Key);
+            ReamObject value = this.Evaluate(pair.Value);
+            items.Add(key, value);
+        }
+
+        return ReamDictionary.From(items);
     }
 
     public ReamObject VisitLambdaExpr(Expr.Lambda expr)
     {
-        throw new NotImplementedException();
+        return ReamFunctionInternal.From(expr.parameters.Select(x => x.Raw).ToList(), expr.body, this._scope);
     }
 
     public ReamObject VisitLiteralExpr(Expr.Literal expr)
     {
-        throw new NotImplementedException();
+        return ReamObjectFactory.Create(expr.value);
     }
 
     public ReamObject VisitLogicalExpr(Expr.Logical expr)
     {
-        throw new NotImplementedException();
+        ReamObject left = this.Evaluate(expr.left);
+
+        return expr.@operator.Type switch
+        {
+            TokenType.PipePipe when left.Truthy().RepresentAs<bool>() => left,
+            TokenType.AmpersandAmpersand when !left.Truthy().RepresentAs<bool>() => left,
+            _ => this.Evaluate(expr.right),
+        };
     }
 
     public ReamObject VisitThisExpr(Expr.This expr)
     {
-        throw new NotImplementedException();
+        return this._scope.Get("this").Value;
     }
 
     public ReamObject VisitDisposeExpr(Expr.Dispose expr)
     {
-        throw new NotImplementedException();
+        // basically get the reamreference object and run .Dispose
+
+        if (expr.expression is Expr.Variable variable)
+        {
+            ReamReference reference = this._scope.Get(variable.name.Raw);
+            reference.Dispose();
+        }
+        else if (!this.SetReference(expr, ReamNull.Instance))
+            throw new("Invalid dispose expression.");
+        
+        return ReamNull.Instance;
     }
 
     public ReamObject VisitUnaryExpr(Expr.Unary expr)
     {
-        throw new NotImplementedException();
+        ReamObject right = this.Evaluate(expr.right);
+
+        return expr.@operator.Type switch
+        {
+            TokenType.Not => right.Truthy().Not(),
+            TokenType.Minus => right.Negate(),
+            _ => throw new("Invalid operator type."),
+        };
     }
 
     public ReamObject VisitVariableExpr(Expr.Variable expr)
     {
-        throw new NotImplementedException();
+        return this._scope.Get(expr.name.Raw).Value;
     }
 
     public ReamObject VisitBlockStmt(Stmt.Block stmt)
     {
-        throw new NotImplementedException();
+        this.ExecuteBlock(stmt.statements, new(this._scope));
+        return ReamNull.Instance;
     }
 
     public ReamObject VisitClassStmt(Stmt.Class stmt)
@@ -255,12 +377,15 @@ public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, I
 
     public ReamObject VisitExpressionStmt(Stmt.Expression stmt)
     {
-        throw new NotImplementedException();
+        this.Evaluate(stmt.expression);
+        return ReamNull.Instance;
     }
 
     public ReamObject VisitFunctionStmt(Stmt.Function stmt)
     {
-        throw new NotImplementedException();
+        ReamFunctionInternal function = ReamFunctionInternal.From(stmt.parameters.Select(x => x.Raw).ToList(), stmt.body, this._scope);
+        this._scope.Set(stmt.name.Raw, function);
+        return ReamNull.Instance;
     }
 
     public ReamObject VisitMethodStmt(Stmt.Method stmt)

@@ -43,11 +43,9 @@ public class ReamFunctionInternal : ReamFunction
         {
             scope.Set(this.Parameters[i], ReamObjectFactory.Create(methodArgs[i]), VariableType.Local);
         }
-        // TODO: Create instance of ReamInterpreter and use that to execute the body
-        Interpreter interpreter = new(scope);
         try
         {
-            interpreter.ExecuteBlock(this.Body, scope);
+            Interpreter.Instance.ExecuteBlock(this.Body, scope);
         }
         catch (Return e)
         {
@@ -55,7 +53,7 @@ public class ReamFunctionInternal : ReamFunction
         }
         finally
         {
-            interpreter.Dispose();
+            Interpreter.Instance.Dispose();
         }
 
         return ReamNull.Instance;

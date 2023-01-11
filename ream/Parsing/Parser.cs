@@ -216,7 +216,7 @@ namespace Ream.Parsing
 
             this.InsistEnd();
 
-            while (this.Match(TokenType.Slash, TokenType.Star, TokenType.Percent))
+            while (this.Match(TokenType.Slash, TokenType.Star, TokenType.Modulo))
             {
                 Token op = this.Previous();
                 Expr right = this.ExprIncrement();

@@ -28,4 +28,6 @@ public static class MemberType
     
     public const string Negate = "~negate";
     public const string Not = "~not";
+    
+    public const string Instance = "new";
 }

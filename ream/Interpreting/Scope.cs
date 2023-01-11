@@ -7,10 +7,21 @@ namespace Ream.Interpreting
     public class ReamReference : IDisposable
     {
         public string Name { get; set; }
-        public ReamObject Value { get; set; }
+        public ReamObject Value
+        {
+            get => this._value;
+            set
+            {
+                if (this.Type != VariableType.Final || this._value != ReamNull.Instance)
+                {
+                    this._value = value;
+                }
+            }
+        }
         public VariableType Type { get; set; }
         public Scope Scope { get; set; }
         private bool _disposed;
+        private ReamObject _value;
 
         public ReamReference(string name, ReamObject value, VariableType type, Scope scope)
         {
@@ -162,7 +173,7 @@ namespace Ream.Interpreting
             // If can't be found locally and has a parent to check
             return this.HasParent ? this.Parent.Get(key) : null;
         }
-        
+
         public void Remove(string key)
         {
             if (this._variables.ContainsKey(key))

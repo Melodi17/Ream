@@ -13,12 +13,6 @@ public abstract class ReamClass : ReamObject
     public override abstract ReamObject Member(string name);
     public override abstract ReamObject SetMember(string name, ReamObject value);
 
-    public ReamObject CoreMember(string name) => name switch
-    {
-        "new" => ReamFunctionExternal.From(this.New),
-        _ => base.Member(name),
-    };
-
     public override ReamString String() => ReamString.From("<class>");
-    public abstract ReamClassInstance New(ReamSequence args);
+    public override abstract ReamObject New(ReamSequence args);
 }

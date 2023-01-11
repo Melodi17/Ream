@@ -24,7 +24,6 @@ namespace Ream.Lexing
             { "lambda", TokenType.Lambda },
             { "global", TokenType.Global },
             { "local", TokenType.Local },
-            { "dynamic", TokenType.Dynamic },
             { "final", TokenType.Final },
             { "static", TokenType.Static },
             { "return", TokenType.Return },
@@ -106,7 +105,7 @@ namespace Ream.Lexing
                     this.AddToken(this.Match('&') ? TokenType.AmpersandAmpersand : TokenType.Ampersand);
                     break;
                 case '%':
-                    this.AddToken(this.Match('%') ? TokenType.PercentPercent : TokenType.Percent);
+                    this.AddToken(this.Match('%') ? TokenType.PercentPercent : TokenType.Modulo);
                     break;
                 case '|':
                     this.AddToken(this.Match('|') ? TokenType.PipePipe : TokenType.Pipe);

@@ -15,13 +15,13 @@
         NotEqual, EqualEqual, GreaterEqual, 
         LessEqual, PlusEqual, MinusEqual, StarEqual,
         SlashEqual, ColonColon, AmpersandAmpersand,
-        PipePipe, PlusPlus, MinusMinus, Percent,
+        PipePipe, PlusPlus, MinusMinus, Modulo,
         PercentPercent,
 
         If, Else, Elif, For, While, Function, Global,
         Return, Null, Class, This, True, False, Local,
-        Lambda, Dynamic, Final, Static ,Import, Continue,
-        Break, Dispose,
+        Lambda, Final, Static ,Import, Continue, Break,
+        Dispose,
 
         Newline, End,
     }

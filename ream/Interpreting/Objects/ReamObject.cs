@@ -90,6 +90,8 @@ public abstract class ReamObject : IDisposable
 
         MemberType.Negate => ReamFunctionExternal.From(this.Negate),
         MemberType.Not => ReamFunctionExternal.From(this.Not),
+        
+        MemberType.Instance => ReamFunctionExternal.From(this.New),
         _ => ReamNull.Instance,
     };
     public virtual ReamObject SetMember(string name, ReamObject value) => ReamNull.Instance;
@@ -115,6 +117,8 @@ public abstract class ReamObject : IDisposable
     // Unary operators
     public virtual ReamObject Negate() => ReamNull.Instance;
     public virtual ReamBoolean Not() => ReamBoolean.From(!this.Truthy().RepresentAs<bool>());
+    
+    public virtual ReamObject New(ReamSequence args) => ReamNull.Instance;
 }
 public static class ReamObjectFactory
 {
@@ -152,12 +156,5 @@ public static class ReamObjectFactory
             return (ReamObject)typeof(ReamDictionary).GetMethod(nameof(ReamDictionary.From))?.MakeGenericMethod(csObject.GetType().GetGenericArguments()[0], csObject.GetType().GetGenericArguments()[1]).Invoke(null, new object[] { csObject });
         
         throw new("Unknown object type '" + csObject.GetType().Name + "'");
-    }
-}
-public static class GarbageCollector
-{
-    public static void Collect()
-    {
-        GC.Collect();
     }
 }

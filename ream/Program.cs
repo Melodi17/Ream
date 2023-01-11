@@ -1,4 +1,5 @@
 ﻿using Ream.Interpreting;
+using ream.Interpreting.Objects;
 using Ream.Lexing;
 using Ream.Parsing;
 using Ream.Tools;
@@ -7,7 +8,6 @@ namespace Ream
 {
     public class Program
     {
-        public static readonly Interpreter Interpreter = new();
         public static bool ErrorOccured = false;
         public static bool RuntimeErrorOccured = false;
         public static string DataPath;
@@ -150,14 +150,12 @@ namespace Ream
                 if (ErrorOccured) continue;
 
                 if (syntax is List<Stmt> list)
-                    Interpreter.Interpret(list);
+                    Interpreter.Instance.Interpret(list);
                 else if (syntax is Expr expr)
                 {
-                    
-                    //string result = Interpreter.resolver.Stringify(Interpreter.Interpret(expr));
-                    //if (result != null)
-                    //    Console.WriteLine(result);
-                    //TODO: Fix
+                    ReamObject obj = Interpreter.Instance.Interpret(expr);
+                    if (obj != null)
+                        Console.WriteLine(obj.RepresentAs<string>());
                 }
             }
         }
@@ -171,9 +169,7 @@ namespace Ream
 
             if (ErrorOccured) return;
 
-            Interpreter.Interpret(statements);
-            //Console.WriteLine("Pointer count: " + Pointer.GetPointerCount());
-            //Console.WriteLine(new ASTPrinter().Print(expression));
+            Interpreter.Instance.Interpret(statements);
         }
         public static void RuntimeError(RuntimeError error)
         {

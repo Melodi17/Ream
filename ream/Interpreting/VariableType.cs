@@ -8,9 +8,8 @@ namespace Ream.Interpreting
         Normal = 0x1,
         Local = 0x2,
         Global = 0x4,
-        Dynamic = 0x8,
-        Final = 0x16,
-        Static = 0x32
+        Final = 0x8,
+        Static = 0x16
     }
     public static class VariableTypeExtensions
     {
@@ -19,7 +18,6 @@ namespace Ream.Interpreting
             {
                 TokenType.Local => VariableType.Local,
                 TokenType.Global => VariableType.Global,
-                TokenType.Dynamic => VariableType.Dynamic,
                 TokenType.Final => VariableType.Final,
                 TokenType.Static => VariableType.Static,
                 _ => VariableType.Normal
@@ -30,10 +28,9 @@ namespace Ream.Interpreting
             {
                 TokenType.Local => true,
                 TokenType.Global => true,
-                TokenType.Dynamic => true,
                 TokenType.Final => true,
                 TokenType.Static => true,
-                _ => false
+                _ => false,
             };
     }
 }

@@ -62,7 +62,7 @@ public class ReamClassExternal : ReamClass
         return found ? value : ReamNull.Instance;
     }
 
-    public override ReamClassInstance New(ReamSequence args)
+    public override ReamObject New(ReamSequence args)
     {
         List<object> objectArgs = args.RepresentAs<List<object>>();
         
