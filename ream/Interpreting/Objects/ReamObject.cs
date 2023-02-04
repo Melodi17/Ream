@@ -103,8 +103,8 @@ public abstract class ReamObject : IDisposable
     public virtual ReamBoolean NotEqual(ReamObject other) => this.Equal(other).Not();
     public virtual ReamBoolean Less(ReamObject other) => ReamBoolean.False;
     public virtual ReamBoolean Greater(ReamObject other) => ReamBoolean.False;
-    public virtual ReamBoolean LessEqual(ReamObject other) => ReamBoolean.From(this.Less(other).RepresentAs<bool>() || this.Equal(other).RepresentAs<bool>());
-    public virtual ReamBoolean GreaterEqual(ReamObject other) => ReamBoolean.From(this.Greater(other).RepresentAs<bool>() || this.Equal(other).RepresentAs<bool>());
+    public virtual ReamBoolean LessEqual(ReamObject other) => ReamBoolean.From(this.Less(other).Value || this.Equal(other).Value);
+    public virtual ReamBoolean GreaterEqual(ReamObject other) => ReamBoolean.From(this.Greater(other).Value || this.Equal(other).Value);
 
 
     // Arithmetic operators
@@ -116,7 +116,7 @@ public abstract class ReamObject : IDisposable
 
     // Unary operators
     public virtual ReamObject Negate() => ReamNull.Instance;
-    public virtual ReamBoolean Not() => ReamBoolean.From(!this.Truthy().RepresentAs<bool>());
+    public virtual ReamBoolean Not() => ReamBoolean.From(!this.Truthy().Value);
     
     public virtual ReamObject New(ReamSequence args) => ReamNull.Instance;
 }

@@ -3,6 +3,7 @@
 public class ReamBoolean : ReamObject
 {
     private readonly bool _value;
+    public bool Value => this._value;
 
     public static readonly ReamBoolean True = new(true);
     public static readonly ReamBoolean False = new(false);

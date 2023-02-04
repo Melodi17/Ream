@@ -28,7 +28,7 @@ public class Flags
 
     public string Type(ReamObject obj)
     {
-        return obj.Type().RepresentAs<string>();
+        return obj.Type().Value;
     }
 }
 public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, IDisposable
@@ -213,8 +213,8 @@ public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, I
                 TokenType.Star => left.Multiply(right),
                 TokenType.Slash => left.Divide(right),
                 TokenType.Modulo => left.Modulo(right),
-                TokenType.Ampersand => ReamBoolean.From(left.Truthy().RepresentAs<bool>() && right.Truthy().RepresentAs<bool>()),
-                TokenType.Pipe => ReamBoolean.From(left.Truthy().RepresentAs<bool>() && right.Truthy().RepresentAs<bool>()),
+                TokenType.Ampersand => ReamBoolean.From(left.Truthy().Value && right.Truthy().Value),
+                TokenType.Pipe => ReamBoolean.From(left.Truthy().Value && right.Truthy().Value),
                 _ => throw new("Invalid operator type."),
             };
         }
@@ -222,7 +222,7 @@ public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, I
 
     public ReamObject VisitTernaryExpr(Expr.Ternary expr)
     {
-        bool condition = this.Evaluate(expr.left).Truthy().RepresentAs<bool>();
+        bool condition = this.Evaluate(expr.left).Truthy().Value;
         return this.Evaluate(condition ? expr.middle : expr.right);
     }
 
@@ -321,8 +321,8 @@ public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, I
 
         return expr.@operator.Type switch
         {
-            TokenType.PipePipe when left.Truthy().RepresentAs<bool>() => left,
-            TokenType.AmpersandAmpersand when !left.Truthy().RepresentAs<bool>() => left,
+            TokenType.PipePipe when left.Truthy().Value => left,
+            TokenType.AmpersandAmpersand when !left.Truthy().Value => left,
             _ => this.Evaluate(expr.right),
         };
     }

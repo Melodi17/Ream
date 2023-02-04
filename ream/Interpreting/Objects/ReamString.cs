@@ -6,7 +6,7 @@ public class ReamString : ReamObject
     public static ReamString Empty = new(string.Empty);
     
     private readonly string _value;
-
+    public string Value => this._value;
     private ReamString(string value)
     {
         this._value = value;
@@ -63,7 +63,7 @@ public class ReamString : ReamObject
         => ReamString.From(this._value
             + (other is ReamString s
                 ? s._value
-                : other.String().RepresentAs<string>()));
+                : other.String().Value));
 
     public override ReamObject Multiply(ReamObject other)
         => ReamString.From(
@@ -76,7 +76,7 @@ public class ReamString : ReamObject
     public ReamBoolean Starts(ReamString other) => ReamBoolean.From(this._value.StartsWith(other._value));
     public ReamBoolean Ends(ReamString other) => ReamBoolean.From(this._value.EndsWith(other._value));
     public ReamString Replace(ReamString old, ReamString @new) => ReamString.From(this._value.Replace(old._value, @new._value));
-    public ReamString Substring(ReamNumber start, ReamNumber end) => ReamString.From(this._value.Substring(start.RepresentAs<int>(), end.RepresentAs<int>()));
+    public ReamString Substring(ReamNumber start, ReamNumber end) => ReamString.From(this._value.Substring(start.IntValue, end.IntValue));
     public ReamString Upper() => ReamString.From(this._value.ToUpper());
     public ReamString Lower() => ReamString.From(this._value.ToLower());
     public ReamString Trim() => ReamString.From(this._value.Trim());

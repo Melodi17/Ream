@@ -31,7 +31,7 @@ public class ReamFunctionInternal : ReamFunction
         object[] methodArgs = new object[this.Parameters.Count];
         for (int i = 0; i < methodArgs.Length; i++)
         {
-            methodArgs[i] = i < args.Length.RepresentAs<int>()
+            methodArgs[i] = i < args.Length.IntValue
                 ? args[ReamNumber.From(i)].Represent()
                 : null;
         }

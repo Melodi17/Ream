@@ -4,6 +4,12 @@ public class ReamNumber : ReamObject
 {
     private static readonly Dictionary<double, ReamNumber> cache = new();
     private readonly double _value;
+    public double Value => this._value;
+    public int IntValue => (int)this._value;
+    public long LongValue => (long)this._value;
+    public short ShortValue => (short)this._value;
+    public byte ByteValue => (byte)this._value;
+    public float FloatValue => (float)this._value;
 
     private ReamNumber(double value)
     {

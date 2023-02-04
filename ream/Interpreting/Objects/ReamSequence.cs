@@ -45,7 +45,7 @@ public class ReamSequence : ReamObject
         {
             if (i > 0)
                 sb.Append(", ");
-            sb.Append(this._value[i].String().RepresentAs<string>());
+            sb.Append(this._value[i].String().Value);
         }
         sb.Append(']');
         return ReamString.From(sb.ToString());
@@ -106,7 +106,7 @@ public class ReamSequence : ReamObject
 
     public ReamBoolean Contains(ReamObject item) => ReamBoolean.From(this._value.Contains(item));
     public ReamNumber Find(ReamObject item) => ReamNumber.From(this._value.IndexOf(item));
-    public ReamString Join(ReamString separator) => ReamString.From(string.Join(separator.RepresentAs<string>(), this._value.Select(x => x.String().RepresentAs<string>())));
+    public ReamString Join(ReamString separator) => ReamString.From(string.Join(separator.Value, this._value.Select(x => x.String().Value)));
 
     public ReamNumber Length => ReamNumber.From(this._value.Count);
 

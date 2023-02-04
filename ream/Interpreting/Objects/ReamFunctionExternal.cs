@@ -25,7 +25,7 @@ public class ReamFunctionExternal : ReamFunction
 
     public override ReamObject Call(ReamSequence args)
     {
-        int argCount = args.Length.RepresentAs<int>();
+        int argCount = args.Length.IntValue;
         object[] methodArgs = new object[this._methodInfo.GetParameters().Length];
         ParameterInfo[] parameters = this._methodInfo.GetParameters();
         for (int i = 0; i < methodArgs.Length; i++)

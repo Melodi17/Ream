@@ -54,9 +54,9 @@ public class ReamDictionary : ReamObject
         sb.Append("{");
         foreach (var item in this._value)
         {
-            sb.Append(item.Key.String().RepresentAs<string>());
+            sb.Append(item.Key.String().Value);
             sb.Append(": ");
-            sb.Append(item.Value.String().RepresentAs<string>());
+            sb.Append(item.Value.String().Value);
             sb.Append(", ");
         }
         return ReamString.From(sb.ToString());
