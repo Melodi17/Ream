@@ -50,16 +50,10 @@ public class ReamDictionary : ReamObject
 
     public override ReamString String()
     {
-        StringBuilder sb = new();
-        sb.Append("{");
-        foreach (var item in this._value)
-        {
-            sb.Append(item.Key.String().Value);
-            sb.Append(": ");
-            sb.Append(item.Value.String().Value);
-            sb.Append(", ");
-        }
-        return ReamString.From(sb.ToString());
+        string text = "{" + string.Join(", ", this._value.Select(
+            item => $"{item.Key.String().Represent()}: {item.Value.String().Represent()}"
+        )) + "}";
+        return ReamString.From(text);
     }
 
     public override ReamObject Member(string name) => name switch

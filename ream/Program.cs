@@ -155,7 +155,7 @@ namespace Ream
                 {
                     ReamObject obj = Interpreter.Instance.Interpret(expr);
                     if (obj != null)
-                        Console.WriteLine(obj.RepresentAs<string>());
+                        Console.WriteLine(obj.String().Value);
                 }
             }
         }

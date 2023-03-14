@@ -23,7 +23,7 @@ public class ReamClassExternal : ReamClass
     {
         return ReamString.From(this._type.Name);
     }
-    public override ReamObject Member(string name)
+    protected override ReamObject ClassMember(string name)
     {
         // Use reflection to get the member
         MemberInfo[] member = this._type.GetMember(name, BindingFlags.Public | BindingFlags.Static);
@@ -38,7 +38,7 @@ public class ReamClassExternal : ReamClass
             _ => ReamNull.Instance,
         };
     }
-    public override ReamObject SetMember(string name, ReamObject value)
+    protected override ReamObject SetClassMember(string name, ReamObject value)
     {
         // Use reflection to set the member
         MemberInfo[] member = this._type.GetMember(name, BindingFlags.Public | BindingFlags.Static);

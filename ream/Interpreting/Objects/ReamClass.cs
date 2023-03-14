@@ -10,8 +10,25 @@ public abstract class ReamClass : ReamObject
     public override ReamBoolean Truthy() => ReamBoolean.True;
 
     // Behaviours
-    public override abstract ReamObject Member(string name);
-    public override abstract ReamObject SetMember(string name, ReamObject value);
+    public override ReamObject Member(string name)
+    {
+        ReamObject member = base.Member(name);
+        if (member == ReamNull.Instance)
+            member = this.ClassMember(name);
+        
+        return member;
+    }
+    protected abstract ReamObject ClassMember(string name);
+
+    public override ReamObject SetMember(string name, ReamObject value)
+    {
+        ReamObject member = base.SetMember(name, value);
+        if (member == ReamNull.Instance)
+            member = this.SetClassMember(name, value);
+        
+        return member;
+    }
+    protected abstract ReamObject SetClassMember(string name, ReamObject value);
 
     public override ReamString String() => ReamString.From("<class>");
     public override abstract ReamObject New(ReamSequence args);

@@ -36,7 +36,15 @@ public class ReamString : ReamObject
 
     // Behaviours
     public override ReamSequence Iterate() => ReamSequence.From(this._value.Select(ReamString.From));
-    public override ReamObject Index(ReamObject index) => ReamString.From(this._value[index.RepresentAs<int>()]);
+    public override ReamObject Index(ReamObject index)
+    {
+        int i = index.RepresentAs<int>();
+        if (i < 0) i += this._value.Length;
+        if (i >= 0 && i < this._value.Length) return ReamString.From(this._value[i]);
+        
+        return ReamNull.Instance;
+    }
+
     public override ReamString String() => ReamString.From($"'{this._value}'");
     public override ReamObject Member(string name) => name switch
     {
@@ -61,9 +69,7 @@ public class ReamString : ReamObject
     // Arithmetic operators
     public override ReamObject Add(ReamObject other)
         => ReamString.From(this._value
-            + (other is ReamString s
-                ? s._value
-                : other.String().Value));
+            + other.ForceString().Value);
 
     public override ReamObject Multiply(ReamObject other)
         => ReamString.From(

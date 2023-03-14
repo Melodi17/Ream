@@ -13,8 +13,26 @@ public abstract class ReamClassInstance : ReamObject
     public override abstract ReamObject SetIndex(ReamObject index, ReamObject newValue);
     public override abstract ReamObject Call(ReamSequence args);
     public override abstract ReamString String();
-    public override abstract ReamObject Member(string name);
-    public override abstract ReamObject SetMember(string name, ReamObject value);
+
+    public override ReamObject Member(string name)
+    {
+        ReamObject member = base.Member(name);
+        if (member == ReamNull.Instance)
+            member = this.ClassMember(name);
+        
+        return member;
+    }
+    protected abstract ReamObject ClassMember(string name);
+
+    public override ReamObject SetMember(string name, ReamObject value)
+    {
+        ReamObject member = base.SetMember(name, value);
+        if (member == ReamNull.Instance)
+            member = this.SetClassMember(name, value);
+        
+        return member;
+    }
+    protected abstract ReamObject SetClassMember(string name, ReamObject value);
 
     // Comparison operators
     public override abstract ReamBoolean Equal(ReamObject other);

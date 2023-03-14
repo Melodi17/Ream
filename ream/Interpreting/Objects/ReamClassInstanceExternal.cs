@@ -59,7 +59,7 @@ public class ReamClassInstanceExternal : ReamClassInstance
 
     public override ReamObject Call(ReamSequence args) => ReamNull.Instance;
 
-    public override ReamObject Member(string name)
+    protected override ReamObject ClassMember(string name)
     {
         // Use reflection to get the member
         MemberInfo[] member = this._instance.GetType().GetMember(name, BindingFlags.Public | BindingFlags.Instance);
@@ -75,7 +75,7 @@ public class ReamClassInstanceExternal : ReamClassInstance
         };
     }
     
-    public override ReamObject SetMember(string name, ReamObject value)
+    protected override ReamObject SetClassMember(string name, ReamObject value)
     {
         // Use reflection to set the member
         MemberInfo[] member = this._instance.GetType().GetMember(name, BindingFlags.Public | BindingFlags.Instance);

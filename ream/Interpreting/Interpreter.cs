@@ -172,7 +172,7 @@ public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, I
 
     public ReamObject VisitAssignExpr(Expr.Assign expr)
     {
-        ReamObject value = this.Evaluate(expr);
+        ReamObject value = this.Evaluate(expr.value);
         this._scope.Set(expr.name.Raw, value);
         return value;
     }
@@ -361,7 +361,7 @@ public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, I
 
     public ReamObject VisitVariableExpr(Expr.Variable expr)
     {
-        return this._scope.Get(expr.name.Raw).Value;
+        return this._scope.Get(expr.name.Raw)?.Value ?? ReamNull.Instance;
     }
 
     public ReamObject VisitBlockStmt(Stmt.Block stmt)
@@ -372,7 +372,30 @@ public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, I
 
     public ReamObject VisitClassStmt(Stmt.Class stmt)
     {
-        throw new NotImplementedException();
+        Scope staticScope = new();
+        Scope instanceScope = new();
+        
+        foreach (Stmt.Function funcDecl in stmt.functions)
+        {
+            bool isStatic = funcDecl.type.HasFlag(VariableType.Static);
+            ReamFunctionInternal func = ReamFunctionInternal.From(funcDecl.parameters.Select(x => x.Raw).ToList(), funcDecl.body,
+                isStatic ? staticScope : instanceScope);
+            
+            (isStatic ? staticScope : instanceScope).Set(funcDecl.name.Raw, func);
+        }
+
+        foreach (Stmt.Typed varDecl in stmt.variables)
+        {
+            bool isStatic = varDecl.type.HasFlag(VariableType.Static);
+            
+            ReamObject value = varDecl.initializer is null ? ReamNull.Instance : this.Evaluate(varDecl.initializer);
+            (isStatic ? staticScope : instanceScope).Set(varDecl.name.Raw, value, varDecl.type);
+        }
+
+        ReamClassInternal clss = ReamClassInternal.From(stmt.name.Raw, staticScope, instanceScope, ReamSequence.Empty);
+        this._scope.Set(stmt.name.Raw, clss);
+        
+        return ReamNull.Instance;
     }
 
     public ReamObject VisitExpressionStmt(Stmt.Expression stmt)
@@ -390,37 +413,78 @@ public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, I
 
     public ReamObject VisitMethodStmt(Stmt.Method stmt)
     {
-        throw new NotImplementedException();
+        ReamObject obj = this.Evaluate(stmt.obj);
+        ReamFunctionInternal method = ReamFunctionInternal.From(stmt.parameters.Select(x => x.Raw).ToList(), stmt.body, this._scope);
+        obj.SetMember(stmt.name.Raw, method);
+        return ReamNull.Instance;
     }
 
     public ReamObject VisitIfStmt(Stmt.If stmt)
     {
-        throw new NotImplementedException();
+        if (this.Evaluate(stmt.condition).Truthy().Value)
+        {
+            this.Execute(stmt.thenBranch);
+            return ReamNull.Instance;
+        }
+
+        if (stmt.elifBranches.Any())
+            foreach ((Expr cond, Stmt block) in stmt.elifBranches)
+                if (this.Evaluate(cond).Truthy().Value)
+                {
+                    this.Execute(block);
+                    return ReamNull.Instance;
+                }
+        
+        if (stmt.elseBranch != null)
+            this.Execute(stmt.elseBranch);
+
+        return ReamNull.Instance;
     }
 
     public ReamObject VisitReturnStmt(Stmt.Return stmt)
     {
-        throw new NotImplementedException();
+        ReamObject value = ReamNull.Instance;
+
+        if (stmt.value != null)
+            value = this.Evaluate(stmt.value);
+
+        throw new Return(stmt.keyword, value);
     }
 
     public ReamObject VisitContinueStmt(Stmt.Continue stmt)
     {
-        throw new NotImplementedException();
+        throw new Continue(stmt.keyword);
     }
 
     public ReamObject VisitBreakStmt(Stmt.Break stmt)
     {
-        throw new NotImplementedException();
+        throw new Break(stmt.keyword);
     }
 
     public ReamObject VisitTypedStmt(Stmt.Typed stmt)
     {
-        throw new NotImplementedException();
+        ReamObject value = stmt.initializer is null ? ReamNull.Instance : this.Evaluate(stmt.initializer);
+        this._scope.Set(stmt.name.Raw, value, stmt.type);
+        
+        return ReamNull.Instance;
     }
 
     public ReamObject VisitWhileStmt(Stmt.While stmt)
     {
-        throw new NotImplementedException();
+        while (this.Evaluate(stmt.condition).Truthy().Value)
+        {
+            try
+            {
+                this.Execute(stmt.body);
+            }
+            catch (Break)
+            {
+                break;
+            }
+            catch (Continue) { }
+        }
+        
+        return ReamNull.Instance;
     }
 
     public ReamObject VisitImportStmt(Stmt.Import stmt)
@@ -430,11 +494,53 @@ public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, I
 
     public ReamObject VisitForStmt(Stmt.For stmt)
     {
-        throw new NotImplementedException();
+        if (stmt.name != null)
+        {
+            Scope prev = this._scope;
+            try
+            {
+                this._scope = new(this._scope);
+                foreach (ReamObject item in this.Evaluate(stmt.iterator).Iterate().Value)
+                {
+                    this._scope.Set(stmt.name.Raw, item, VariableType.Local);
+                    try
+                    {
+                        this.Execute(stmt.body);
+                    }
+                    catch (Break)
+                    {
+                        break;
+                    }
+                    catch (Continue) { }
+                }
+            }
+            finally
+            {
+                this._scope = prev;
+            }
+        }
+        else
+        {
+            foreach (ReamObject _ in this.Evaluate(stmt.iterator).Iterate().Value)
+            {
+                try
+                {
+                    this.Execute(stmt.body);
+                }
+                catch (Break)
+                {
+                    break;
+                }
+                catch (Continue) { }
+            }
+        }
+        
+        return ReamNull.Instance;
     }
 
     public ReamObject VisitEvaluateStmt(Stmt.Evaluate stmt)
     {
-        throw new NotImplementedException();
+        this.Evaluate(stmt.value);
+        return ReamNull.Instance;
     }
 }

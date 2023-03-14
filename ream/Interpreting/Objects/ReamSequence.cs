@@ -7,6 +7,8 @@ public class ReamSequence : ReamObject
 {
     public static ReamSequence Empty => new(Array.Empty<ReamObject>());
     private readonly List<ReamObject> _value;
+    
+    public List<ReamObject> Value => this._value;
 
     private ReamSequence(IEnumerable<ReamObject> value)
     {
@@ -15,6 +17,7 @@ public class ReamSequence : ReamObject
 
     // Conversions
     public static ReamSequence From<T>(IEnumerable<T> list) => new(list.Select(x => ReamObjectFactory.Create(x)));
+    public static ReamSequence FromParams<T>(params T[] arr) => new(arr.Select(x => ReamObjectFactory.Create(x)));
 
     // Core behaviours
     protected override void DisposeManaged() { /* Do nothing */ }

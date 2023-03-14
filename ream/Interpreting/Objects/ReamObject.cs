@@ -99,7 +99,7 @@ public abstract class ReamObject : IDisposable
     public virtual ReamString String() => ReamString.From("<object>");
 
     // Comparison operators
-    public virtual ReamBoolean Equal(ReamObject other) => ReamBoolean.From(this.Represent().Equals(other.Represent()));
+    public virtual ReamBoolean Equal(ReamObject other) => ReamBoolean.From(this.Represent()?.Equals(other.Represent()) ?? other.Represent() == null);
     public virtual ReamBoolean NotEqual(ReamObject other) => this.Equal(other).Not();
     public virtual ReamBoolean Less(ReamObject other) => ReamBoolean.False;
     public virtual ReamBoolean Greater(ReamObject other) => ReamBoolean.False;
@@ -156,5 +156,18 @@ public static class ReamObjectFactory
             return (ReamObject)typeof(ReamDictionary).GetMethod(nameof(ReamDictionary.From))?.MakeGenericMethod(csObject.GetType().GetGenericArguments()[0], csObject.GetType().GetGenericArguments()[1]).Invoke(null, new object[] { csObject });
         
         throw new("Unknown object type '" + csObject.GetType().Name + "'");
+    }
+
+    /// <summary>
+    /// String-ifys a string, unless it is already a string, preventing auto-quoting
+    /// </summary>
+    /// <param name="obj">Ream object to string-ify</param>
+    /// <returns>ReamString of the object</returns>
+    public static ReamString ForceString(this ReamObject obj)
+    {
+        if (obj is ReamString s)
+            return s;
+
+        return obj.String();
     }
 }

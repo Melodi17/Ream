@@ -49,6 +49,8 @@ public class ReamNumber : ReamObject
     public override ReamBoolean Truthy() => ReamBoolean.From(this._value != 0);
 
     // Behaviours
+    public override ReamObject Index(ReamObject indexer) => indexer;
+
     public override ReamString String()
     {
         // Tostring it, but if it ends with .0, remove it
