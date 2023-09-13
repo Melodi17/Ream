@@ -114,4 +114,7 @@ public class ReamSequence : ReamObject
     public ReamNumber Length => ReamNumber.From(this._value.Count);
 
     public ReamObject this[ReamNumber index] { get => this.Index(index); set => this.SetIndex(index, value); }
+    
+    // Allow conversion from ReamSequence to ReamNull
+    public static implicit operator ReamSequence(ReamNull _) => ReamSequence.Empty;
 }

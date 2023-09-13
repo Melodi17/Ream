@@ -179,5 +179,10 @@ namespace Ream.Interpreting
             if (this._variables.ContainsKey(key))
                 this._variables.Remove(key);
         }
+        
+        public LinqDictionary<string, ReamReference> GetMembers()
+        {
+            return this._variables;
+        }
     }
 }

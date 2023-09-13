@@ -118,6 +118,7 @@ public abstract class ReamObject : IDisposable
     public virtual ReamObject Negate() => ReamNull.Instance;
     public virtual ReamBoolean Not() => ReamBoolean.From(!this.Truthy().Value);
     
+    [RawArgs]
     public virtual ReamObject New(ReamSequence args) => ReamNull.Instance;
 }
 public static class ReamObjectFactory

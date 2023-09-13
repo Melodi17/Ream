@@ -30,4 +30,5 @@ public static class MemberType
     public const string Not = "~not";
     
     public const string Instance = "new";
+    public const string InstanceInternal = "~instance";
 }

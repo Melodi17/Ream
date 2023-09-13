@@ -9,11 +9,19 @@ public class ReamClassInstanceInternal : ReamClassInstance
     private ReamClassInstanceInternal(string typeName, Scope scope, ReamSequence args)
     {
         this._typeName = typeName;
-        Scope instanceScope = new(scope);
+        Scope instanceScope = new();
         instanceScope.Set("this", this);
         this._scope = instanceScope;
+        
+        // copy all parent scope members to this scope
+        foreach (ReamReference reference in scope.GetMembers())
+        // if its a function, bind it to this scope
+            if (reference.Value is ReamFunction function)
+                this._scope.Set(reference.Name, function.Bind(this), reference.Type);
+            else
+                this._scope.Set(reference.Name, reference.Value, reference.Type);
 
-        this._scope.Get(MemberType.Instance)?.Value?.Call(args);
+        this._scope.Get(MemberType.InstanceInternal)?.Value?.Call(args);
     }
 
     public static ReamClassInstanceInternal From(string typeName, Scope scope, ReamSequence args) => new(typeName, scope, args);

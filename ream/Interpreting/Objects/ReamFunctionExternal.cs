@@ -25,6 +25,11 @@ public class ReamFunctionExternal : ReamFunction
 
     public override ReamObject Call(ReamSequence args)
     {
+        // if methodinfo has a RawArgs attribute, pass the args as is
+        if (this._methodInfo.GetCustomAttribute<RawArgsAttribute>() != null)
+            return ReamObjectFactory.Create(this._methodInfo.Invoke(this._boundInstance, new object[] { args }));
+        
+        
         int argCount = args.Length.IntValue;
         object[] methodArgs = new object[this._methodInfo.GetParameters().Length];
         ParameterInfo[] parameters = this._methodInfo.GetParameters();

@@ -1,13 +1,14 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using ream.Interpreting.Objects;
 using Ream.Lexing;
 using Ream.Parsing;
 
 namespace Ream.Interpreting;
 
-// TODO: Syntax styling as follows:
+// NOTE: Syntax styling as follows:
 /*
  * 1. Classes: MyClass - Capital camel case
  * 2. Methods: myMethod - Lower camel case
@@ -489,7 +490,53 @@ public class Interpreter : Expr.Visitor<ReamObject>, Stmt.Visitor<ReamObject>, I
 
     public ReamObject VisitImportStmt(Stmt.Import stmt)
     {
-        throw new NotImplementedException();
+        if (!stmt.name.Any())
+            return null;
+
+        StringBuilder sb = new();
+        foreach (Token item in stmt.name)
+        {
+            if (item.Type == TokenType.Identifier)
+                sb.Append(item.Raw);
+            else if (item.Type == TokenType.Period)
+                sb.Append('.');
+        }
+
+        string displayPath = sb.ToString();
+        string basePath = displayPath.Replace('.', Path.DirectorySeparatorChar);
+
+        string dllPath = basePath + ".dll";
+        string dllLibDataPath = Path.Join(Program.LibDataPath, dllPath);
+        if (File.Exists(dllPath))
+        {
+            Assembly asm = Assembly.LoadFrom(dllPath);
+            this.LoadAssemblyLibrary(asm);
+        }
+        else if (File.Exists(dllLibDataPath))
+        {
+            Assembly asm = Assembly.LoadFrom(dllLibDataPath);
+            this.LoadAssemblyLibrary(asm);
+        }
+        else
+        {
+            string reamPath = basePath + ".r";
+            string reamLibDataPath = Path.Join(Program.LibDataPath, reamPath);
+            if (File.Exists(reamPath))
+            {
+                Program.RunFile(reamPath);
+            }
+            else if (File.Exists(reamLibDataPath))
+            {
+                Program.RunFile(reamLibDataPath);
+            }
+            else
+            {
+                if (this._flags.Strict)
+                    throw new RuntimeError(stmt.name.First(), $"Unable to find library '{displayPath}'");
+            }
+        }
+
+        return ReamNull.Instance;
     }
 
     public ReamObject VisitForStmt(Stmt.For stmt)
